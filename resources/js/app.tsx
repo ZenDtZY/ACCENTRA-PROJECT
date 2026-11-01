@@ -2,7 +2,6 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import InstallAppButton from './components/pwa/installAppButton';
 import AppStartupAnimation from './components/pwa/appStartupAnimation';
 
 
@@ -83,7 +82,6 @@ void createInertiaApp({
         createRoot(el).render(
             <>
                 <App {...props} />
-                <InstallAppButton />
                 <AppStartupAnimation />
             </>
         );

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'student_number',
@@ -41,5 +42,10 @@ class Student extends Authenticatable
     public function sectionRecord()
     {
         return $this->belongsTo(Section::class, 'section_id');
+    }
+
+    public function chartOfAccounts(): HasMany
+    {
+        return $this->hasMany(ChartOfAccount::class);
     }
 }

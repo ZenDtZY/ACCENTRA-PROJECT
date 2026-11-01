@@ -1,46 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
 import { BookOpen, Plus, Search, Eye, Pencil, Trash2, X, ChevronLeft, ChevronRight, Filter, Wallet, TrendingUp, Scale, CircleDollarSign, CalendarDays, Layers3, Info, CheckCircle2, AlertCircle, AlertTriangle, Save, } from "lucide-react";
 import StudentLayout from "../components/layout/studentLayout";
 
 const TYPES = ["Asset", "Liability", "Equity", "Revenue", "Expense"];
 
-const ACCOUNT_CODE_PREFIX = {
-    Asset: "1",
-    Liability: "2",
-    Equity: "3",
-    Revenue: "4",
-    Expense: "5",
-};
-
-const generateAccountCode = (type, accountList, currentId = null) => {
-    const prefix = ACCOUNT_CODE_PREFIX[type] || "9";
-    const usedCodes = accountList
-        .filter(account => account.id !== currentId)
-        .map(account => String(account.code || ""))
-        .filter(code => code.startsWith(prefix) && /^\d{3}$/.test(code))
-        .map(Number);
-
-    let nextNumber = Number(`${prefix}01`);
-    while (usedCodes.includes(nextNumber)) {
-        nextNumber += 1;
-    }
-
-    return String(nextNumber).padStart(3, "0");
-};
-
 const emptyForm = {
     code: "", title: "", type: "", nature: "Debit", accountGroup: "", period: "", description: "", status: "Active",
 };
-
-const initialAccounts = [
-    { id: 1, code: "101", title: "Cash", type: "Asset", nature: "Debit", accountGroup: "ABC School Supplies", description: "Cash available for business operations.", status: "Active" },
-    { id: 2, code: "102", title: "Accounts Receivable", type: "Asset", nature: "Debit", accountGroup: "ABC School Supplies", description: "Amounts collectible from customers.", status: "Active" },
-    { id: 3, code: "103", title: "Supplies", type: "Asset", nature: "Debit", accountGroup: "ABC School Supplies", description: "Supplies used in business operations.", status: "Active" },
-    { id: 4, code: "104", title: "Equipment", type: "Asset", nature: "Debit", accountGroup: "ABC School Supplies", description: "Equipment used in business operations.", status: "Active" },
-    { id: 5, code: "301", title: "Owner's Capital", type: "Equity", nature: "Credit", accountGroup: "ABC School Supplies", description: "Owner's investment in the business.", status: "Active" },
-    { id: 6, code: "401", title: "Sales Revenue", type: "Revenue", nature: "Credit", accountGroup: "ABC School Supplies", description: "Income earned from sales.", status: "Active" },
-    { id: 7, code: "501", title: "Electricity Expense", type: "Expense", nature: "Debit", accountGroup: "ABC School Supplies", description: "Cost of electricity used by the business.", status: "Active" },
-];
 
 const money = (n) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(n || 0));
 
@@ -80,37 +47,28 @@ function Modal({ title, onClose, children, footer }) {
 }
 
 export default function StudentChartOfAccounts() {
-    const [accounts, setAccounts] = useState(() => {
-        try {
-            const saved = sessionStorage.getItem("accentra_student_accounts");
-            const parsed = saved ? JSON.parse(saved) : null;
-            return Array.isArray(parsed) ? parsed : initialAccounts;
-        }
-        catch {
-            return initialAccounts;
-        }
-    });
+    const { accounts: serverAccounts } = usePage().props;
+    const [accounts, setAccounts] = useState(serverAccounts);
     const [group, setGroup] = useState("ABC School Supplies");
     const [period, setPeriod] = useState("End of Month");
     const [search, setSearch] = useState("");
     const [typeFilter, setTypeFilter] = useState("All Types");
     const [groupFilter, setGroupFilter] = useState("All Groups");
     const [page, setPage] = useState(1);
-    const [selected, setSelected] = useState(initialAccounts[0]);
+    const [selected, setSelected] = useState(serverAccounts[0] || null);
     const [modal, setModal] = useState(false);
     const [viewOnly, setViewOnly] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [message, setMessage] = useState("");
+    const [pageError, setPageError] = useState("");
     const [activeTask, setActiveTask] = useState(null);
     const [taskWorkflowAdd, setTaskWorkflowAdd] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     useEffect(() => {
-        try {
-            sessionStorage.setItem("accentra_student_accounts", JSON.stringify(accounts));
-        }
-        catch { }
-    }, [accounts]);
+        setAccounts(serverAccounts);
+        setSelected(current => serverAccounts.find(account => account.id === current?.id) || serverAccounts[0] || null);
+    }, [serverAccounts]);
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get("openAddAccount") === "1") {
@@ -152,43 +110,51 @@ export default function StudentChartOfAccounts() {
         if (!form.title.trim() || !form.type.trim() || !form.description.trim() || !(form.accountGroup || group).trim() || !(form.period || period).trim())
             return setMessage("Please complete the required account information.");
         const isNew = !form.id;
-        const savedAccount = {
-            ...form,
-            id: form.id || Date.now(),
-            code: form.id ? (form.code || generateAccountCode(form.type, accounts, form.id)) : generateAccountCode(form.type, accounts),
+        const accountData = {
+            code: form.code || null,
             title: form.title.trim(),
+            type: form.type.trim(),
+            nature: form.nature,
             accountGroup: (form.accountGroup || group).trim(),
             period: (form.period || period).trim(),
             description: form.description.trim(),
+            status: form.status,
         };
-        const updatedAccounts = isNew
-            ? [...accounts, savedAccount]
-            : accounts.map(a => a.id === form.id ? savedAccount : a);
-        try {
-            sessionStorage.setItem("accentra_student_accounts", JSON.stringify(updatedAccounts));
+        const options = {
+            preserveScroll: true,
+            onError: errors => setMessage(Object.values(errors).flat().join(" ")),
+            onSuccess: () => {
+                setGroup(accountData.accountGroup);
+                setPeriod(accountData.period);
+                setMessage("");
+                setModal(false);
+                if (isNew && taskWorkflowAdd && activeTask) {
+                    window.location.assign("/student/accounting/journal-entries?openCreateEntry=1");
+                }
+                setTaskWorkflowAdd(false);
+            },
+        };
+
+        if (isNew) {
+            router.post("/student/accounting/chart-of-accounts", accountData, options);
+        } else {
+            router.put(`/student/accounting/chart-of-accounts/${form.id}`, accountData, options);
         }
-        catch {
-            setMessage("Unable to save the account to this session. Please try again.");
-            return;
-        }
-        setAccounts(updatedAccounts);
-        setGroup(savedAccount.accountGroup);
-        setPeriod(savedAccount.period);
-        setSelected(savedAccount);
-        setMessage("");
-        setModal(false);
-        if (isNew && taskWorkflowAdd && activeTask) {
-            window.location.assign("/student/accounting/journal-entries?openCreateEntry=1");
-        }
-        setTaskWorkflowAdd(false);
     };
     const remove = (a) => setDeleteTarget(a);
 
     const confirmDelete = () => {
         if (!deleteTarget) return;
-        setAccounts(prev => prev.filter(x => x.id !== deleteTarget.id));
-        if (selected?.id === deleteTarget.id) setSelected(null);
-        setDeleteTarget(null);
+        const accountId = deleteTarget.id;
+        router.delete(`/student/accounting/chart-of-accounts/${accountId}`, {
+            preserveScroll: true,
+            onError: errors => setPageError(Object.values(errors).flat().join(" ")),
+            onSuccess: () => {
+                if (selected?.id === accountId) setSelected(null);
+                setDeleteTarget(null);
+                setPageError("");
+            },
+        });
     };
     const statCards = [
         { title: "Total Accounts", value: accounts.length, icon: BookOpen, color: "text-sky-300 bg-sky-400/10" },
@@ -197,6 +163,7 @@ export default function StudentChartOfAccounts() {
     return <StudentLayout activeMenu="Chart of Accounts" title="Chart of Accounts" subtitle="Create and manage the accounts used in your accounting records" showPageInfo={false}
             showSearch={false}>
         <div className="space-y-5 text-white">
+            {pageError && <p role="alert" className="rounded-lg border border-rose-400/20 bg-rose-400/10 p-3 text-xs text-rose-200">{pageError}</p>}
             <section className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <span className="inline-flex rounded-full border border-[#A9E5D2]/20 bg-[#A9E5D2]/[0.07] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#A9E5D2]">Accounting Workspace</span>
