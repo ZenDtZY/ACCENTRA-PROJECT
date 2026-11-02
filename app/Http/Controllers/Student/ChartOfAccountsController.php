@@ -85,9 +85,27 @@ class ChartOfAccountsController extends Controller
         Student $student,
         ?ChartOfAccount $account = null
     ): array {
-        $request->merge([
+        $normalized = [
             'account_group' => $request->input('accountGroup', $request->input('account_group')),
-        ]);
+        ];
+
+        foreach ([
+            'type' => ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'],
+            'nature' => ['Debit', 'Credit'],
+            'status' => ['Active', 'Inactive'],
+        ] as $field => $allowedValues) {
+            $value = $request->input($field);
+            if (is_string($value)) {
+                foreach ($allowedValues as $allowedValue) {
+                    if (strcasecmp(trim($value), $allowedValue) === 0) {
+                        $normalized[$field] = $allowedValue;
+                        break;
+                    }
+                }
+            }
+        }
+
+        $request->merge($normalized);
 
         return $request->validate([
             'code' => [

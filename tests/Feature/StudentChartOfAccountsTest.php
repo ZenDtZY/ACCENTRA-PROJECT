@@ -115,3 +115,20 @@ it('validates account fields before saving', function () {
 
     expect($student->chartOfAccounts()->exists())->toBeFalse();
 });
+
+it('accepts account enum values regardless of letter case', function () {
+    $student = chartOfAccountsStudent();
+
+    $this->actingAs($student, 'student')
+        ->post(route('student.accounting.chart-of-accounts.store'), validChartAccount([
+            'type' => 'asset',
+            'nature' => 'debit',
+            'status' => 'active',
+        ]))
+        ->assertRedirect(route('student.accounting.chart-of-accounts'));
+
+    $account = $student->chartOfAccounts()->firstOrFail();
+    expect($account->type)->toBe('Asset')
+        ->and($account->nature)->toBe('Debit')
+        ->and($account->status)->toBe('Active');
+});

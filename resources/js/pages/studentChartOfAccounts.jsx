@@ -180,18 +180,6 @@ export default function StudentChartOfAccounts() {
                 <p className="text-[11px] text-white/45">{s.title}</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums">{s.value}</p>
             </div>)}</div>
-           <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#17283A]/90 to-[#0B1728]/90 p-4">
-                          <div className="grid gap-3 sm:grid-cols-2">
-                              <div>
-                                  <label className={label}>Account Group</label>
-                                  <input disabled value={selected?.accountGroup || group || "Not set"} className={`${field} opacity-75`} />
-                              </div>
-                              <div>
-                                  <label className={label}>Account Period</label>
-                                  <input disabled value={selected?.period || period || "Not set"} className={`${field} opacity-75`} />
-                              </div>
-                          </div>
-                      </section>
             <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,.85fr)]">
                 <Panel title={`Account List (${filtered.length})`} icon={BookOpen}>
                     <div className="flex flex-col gap-3 border-b border-white/[0.07] p-4 lg:flex-row lg:items-center">

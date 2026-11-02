@@ -15,7 +15,6 @@ class StudentTaskController extends Controller
     private function currentStudent(): Student
     {
         $user = Auth::user();
-
         // The project may authenticate students through the student guard
         // or through the linked users table on the web guard.
         $student = $user instanceof Student
