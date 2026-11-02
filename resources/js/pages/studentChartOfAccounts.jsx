@@ -125,7 +125,7 @@ export default function StudentChartOfAccounts() {
                 setActiveTask(task);
                 setTaskWorkflowAdd(true);
             }
-            setForm({ ...emptyForm, code: "", accountGroup: group, period });
+            setForm({ ...emptyForm, code: "", accountGroup: "", period: "" });
             setViewOnly(false);
             setModal(true);
         }
@@ -140,7 +140,7 @@ export default function StudentChartOfAccounts() {
     const openAdd = () => {
         setTaskWorkflowAdd(false);
         setActiveTask(null);
-        setForm({ ...emptyForm, code: "", accountGroup: group, period });
+        setForm({ ...emptyForm, code: "", accountGroup: "", period: "" });
         setViewOnly(false);
         setMessage("");
         setModal(true);
@@ -149,7 +149,7 @@ export default function StudentChartOfAccounts() {
     const openView = (a) => { setSelected(a); setForm({ id: a.id, code: a.code, title: a.title, type: a.type, nature: a.nature, accountGroup: a.accountGroup || "", period: a.period || period, description: a.description, status: a.status }); setViewOnly(true); setModal(true); };
     const save = (e) => {
         e.preventDefault();
-        if (!form.title.trim() || !form.type.trim() || !form.description.trim() || !(form.accountGroup || group).trim() || !(form.period || period).trim())
+        if (!form.title.trim() || !form.type.trim() || !form.description.trim() || !form.accountGroup.trim() || !form.period.trim())
             return setMessage("Please complete the required account information.");
         const isNew = !form.id;
         const savedAccount = {
@@ -157,8 +157,8 @@ export default function StudentChartOfAccounts() {
             id: form.id || Date.now(),
             code: form.id ? (form.code || generateAccountCode(form.type, accounts, form.id)) : generateAccountCode(form.type, accounts),
             title: form.title.trim(),
-            accountGroup: (form.accountGroup || group).trim(),
-            period: (form.period || period).trim(),
+            accountGroup: form.accountGroup.trim(),
+            period: form.period.trim(),
             description: form.description.trim(),
         };
         const updatedAccounts = isNew
@@ -213,18 +213,7 @@ export default function StudentChartOfAccounts() {
                 <p className="text-[11px] text-white/45">{s.title}</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums">{s.value}</p>
             </div>)}</div>
-           <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#17283A]/90 to-[#0B1728]/90 p-4">
-                          <div className="grid gap-3 sm:grid-cols-2">
-                              <div>
-                                  <label className={label}>Account Group</label>
-                                  <input disabled value={selected?.accountGroup || group || "Not set"} className={`${field} opacity-75`} />
-                              </div>
-                              <div>
-                                  <label className={label}>Account Period</label>
-                                  <input disabled value={selected?.period || period || "Not set"} className={`${field} opacity-75`} />
-                              </div>
-                          </div>
-                      </section>
+         
             <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,.85fr)]">
                 <Panel title={`Account List (${filtered.length})`} icon={BookOpen}>
                     <div className="flex flex-col gap-3 border-b border-white/[0.07] p-4 lg:flex-row lg:items-center">
