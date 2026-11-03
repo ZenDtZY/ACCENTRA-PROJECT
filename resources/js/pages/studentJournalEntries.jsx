@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { NotebookPen, Plus, Search, Eye, Pencil, Trash2, X, ChevronLeft, ChevronRight, CalendarDays, CheckCircle2, Clock3, AlertTriangle, Save, Send, Info, FileText, Calculator, RotateCcw, } from "lucide-react";
+
 import StudentLayout from "../components/layout/studentLayout";
 
 const seedAccounts = [
@@ -53,7 +55,7 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
     const credit = form.lines.reduce((n, x) => n + Number(x.credit || 0), 0);
     const balanced = debit > 0 && Math.abs(debit - credit) < 0.005;
     const updateLine = (index, key, value) => setForm(prev => ({ ...prev, lines: prev.lines.map((line, i) => i === index ? { ...line, [key]: value } : line) }));
-    const chooseAccount = (index, code) => { const account = accounts.find(a => a.code === code); setForm(prev => ({ ...prev, lines: prev.lines.map((line, i) => i === index ? { ...line, code, title: account?.title || "" } : line) })); };
+    const chooseAccount = (index, code) => { setForm(prev => ({ ...prev, lines: prev.lines.map((line, i) => i === index ? { ...line, code } : line) })); };
     const save = (status) => {
         if (!form.date || !form.description.trim())
             return setError("Enter the transaction date and description.");
@@ -106,22 +108,38 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
                         </div>{!readOnly && <button onClick={() => setForm(p => ({ ...p, lines: [...p.lines, blankLine()] }))} className="inline-flex items-center gap-1 rounded-lg border border-[#A9E5D2]/25 px-2.5 py-1.5 text-[11px] font-semibold text-[#A9E5D2] hover:bg-[#A9E5D2]/10">
                             <Plus size={13} /> Add Row</button>}</div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[760px] text-left text-xs">
+                        <table className="w-full min-w-[1050px] text-left text-xs">
                             <thead className="bg-white/[0.025] text-[10px] uppercase text-white/40">
                                 <tr>
                                     <th className="px-3 py-3">#</th>
-                                    <th className="px-3 py-3">Account Code / Title</th>
+                                    <th className="px-3 py-3">Date</th>
+                                    <th className="px-3 py-3">Account Title</th>
+                                    <th className="px-3 py-3">Account Code/Name</th>
                                     <th className="px-3 py-3">Description</th>
                                     <th className="px-3 py-3">Debit (₱)</th>
-                                    <th className="px-3 py-3">Credit (₱)</th>{!readOnly && <th className="px-3 py-3">Action</th>}</tr>
+                                    <th className="px-3 py-3">Credit (₱)</th>
+                                    {!readOnly && <th className="px-3 py-3">Action</th>}
+                                </tr>
                             </thead>
                             <tbody className="divide-y divide-white/[0.06]">{form.lines.map((line, i) => <tr key={i}>
                                 <td className="px-3 py-2.5 text-white/40">{i + 1}</td>
+                                <td className="whitespace-nowrap px-3 py-2.5 text-white/55">
+                                    {form.date || "—"}
+                                </td>
+                                <td className="px-3 py-2.5">
+                                    <input
+                                        disabled={readOnly}
+                                        className={field}
+                                        value={line.title}
+                                        onChange={e => updateLine(i, "title", e.target.value)}
+                                        placeholder="Enter account title"
+                                    />
+                                </td>
                                 <td className="w-[220px] px-3 py-2.5">
                                     <select disabled={readOnly} className={field} value={line.code} onChange={e => chooseAccount(i, e.target.value)}>
-                                        <option value="">Select account</option>{accounts.filter(a => a.status === "Active").map(a => <option key={a.code} value={a.code}>{a.code} — {a.title}</option>)}</select>{line.title && <p className="mt-1 text-[10px] text-white/40">{line.title}</p>}</td>
+                                        <option value="">Select account</option>{accounts.filter(a => a.status === "Active").map(a => <option key={a.code} value={a.code}>{a.code} — {a.title}</option>)}</select></td>
                                 <td className="px-3 py-2.5">
-                                    <input disabled={readOnly} className={field} value={line.explanation} onChange={e => updateLine(i, "explanation", e.target.value)} placeholder="Enter a description" />
+                                    <input disabled={readOnly} className={field} value={line.explanation} onChange={e => updateLine(i, "explanation", e.target.value)} placeholder="Description" />
                                 </td>
                                 <td className="px-3 py-2.5">
                                     <input disabled={readOnly} type="number" min="0" step="0.01" className={field} value={line.debit} onChange={e => updateLine(i, "debit", e.target.value)} placeholder="0.00" />
@@ -135,7 +153,7 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
                                 </td>}</tr>)}</tbody>
                             <tfoot className="border-t border-white/10 bg-white/[0.035] font-semibold">
                                 <tr>
-                                    <td colSpan="3" className="px-3 py-3 text-right text-white/60">TOTAL</td>
+                                    <td colSpan="5" className="px-3 py-3 text-right text-white/60">TOTAL</td>
                                     <td className="px-3 py-3 text-white">{money(debit)}</td>
                                     <td className="px-3 py-3 text-white">{money(credit)}</td>{!readOnly && <td />}</tr>
                             </tfoot>
@@ -204,7 +222,6 @@ export default function StudentJournalEntries() {
             try {
                 const saved = sessionStorage.getItem("accentra_student_accounts");
                 const parsed = saved ? JSON.parse(saved) : null;
-
                 if (Array.isArray(parsed)) {
                     setAccounts(parsed);
                 }
@@ -213,18 +230,16 @@ export default function StudentJournalEntries() {
                 // Keep the fallback account list if session data is unavailable.
             }
         };
-
         loadAccounts();
         window.addEventListener("focus", loadAccounts);
         window.addEventListener("storage", loadAccounts);
-
         return () => {
             window.removeEventListener("focus", loadAccounts);
             window.removeEventListener("storage", loadAccounts);
         };
     }, []);
     const pageSize = 10;
-    const filtered = useMemo(() => entries.filter(e => (e.ref + " " + e.description).toLowerCase().includes(search.toLowerCase()) && (statusFilter === "All Statuses" || e.status === statusFilter) && (!from || e.date >= from) && (!to || e.date <= to)), [entries, search, statusFilter, from, to]);
+    const filtered = useMemo(() => entries.filter(e => (e.ref + " " + e.description + " " + e.lines.map(line => line.title || "").join(" ")).toLowerCase().includes(search.toLowerCase()) && (statusFilter === "All Statuses" || e.status === statusFilter) && (!from || e.date >= from) && (!to || e.date <= to)), [entries, search, statusFilter, from, to]);
     const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const shown = filtered.slice((page - 1) * pageSize, page * pageSize);
     const totalPosted = entries.filter(e => e.status === "Posted").length;
@@ -233,13 +248,11 @@ export default function StudentJournalEntries() {
     const openNew = () => setModal({ mode: "edit", entry: { ...blankEntry(), ref: `JE-${String(Math.max(0, ...entries.map(e => Number(e.ref?.split("-")[1]) || 0)) + 1).padStart(3, "0")}` } });
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-
         if (params.get("openCreateEntry") === "1") {
             const nextNumber = Math.max(
                 0,
                 ...entries.map(entry => Number(entry.ref?.split("-")[1]) || 0),
             ) + 1;
-
             setModal({
                 mode: "edit",
                 entry: {
@@ -247,7 +260,6 @@ export default function StudentJournalEntries() {
                     ref: `JE-${String(nextNumber).padStart(3, "0")}`,
                 },
             });
-
             params.delete("openCreateEntry");
             const query = params.toString();
             window.history.replaceState(
@@ -289,19 +301,7 @@ export default function StudentJournalEntries() {
                 <p className="text-[11px] text-white/45">{s.title}</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums">{s.value}</p>
             </div>)}</div>
-            <section className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#17283A]/90 to-[#0B1728]/90 p-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                        <label className={label}>Account Group</label>
-                        <input disabled value={accounts.find(a => a.accountGroup)?.accountGroup || "ABC School Supplies"} className={`${field} opacity-75`} />
-                    </div>
-                    <div>
-                        <label className={label}>Account Period</label>
-                        <input value={period} onChange={e => setPeriod(e.target.value)} className={field} />
-                    </div>
-                </div>
-
-            </section>
+            
             <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,.8fr)]">
                 <Panel title={`Journal Entry List (${filtered.length})`} icon={NotebookPen}>
                     <div className="grid items-end gap-3 border-b border-white/[0.07] p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -324,18 +324,24 @@ export default function StudentJournalEntries() {
                                 <option>Posted</option>
                             </select>
                         </div>
-                        
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[650px] text-left text-xs">
+                        <table className="w-full min-w-[820px] text-left text-xs">
                             <thead className="bg-white/[0.035] text-[10px] uppercase tracking-wider text-white/40">
-                                <tr>{["#", "Reference No.", "Date", "Description", "Total Debit", "Total Credit", "Status", "Action"].map(x => <th key={x} className="px-3 py-3">{x}</th>)}</tr>
+                                <tr>{["#", "Reference No.", "Date", "Account Title", "Description", "Total Debit", "Total Credit", "Status", "Action"].map(x => <th key={x} className="px-3 py-3">{x}</th>)}</tr>
                             </thead>
                             <tbody className="divide-y divide-white/[0.06]">{shown.map((e, i) => {
                                 const d = e.lines.reduce((n, l) => n + Number(l.debit || 0), 0); const c = e.lines.reduce((n, l) => n + Number(l.credit || 0), 0); return <tr key={e.id} onClick={() => setSelected(e)} className={`cursor-pointer hover:bg-[#A9E5D2]/[0.04] ${selected?.id === e.id ? "bg-[#A9E5D2]/[0.05]" : ""}`}>
                                     <td className="px-3 py-3 text-white/35">{(page - 1) * pageSize + i + 1}</td>
                                     <td className="px-3 py-3 font-semibold text-white/80">{e.ref}</td>
                                     <td className="whitespace-nowrap px-3 py-3 text-white/55">{new Date(`${e.date}T00:00:00`).toLocaleDateString("en-PH", { month: "short", day: "2-digit", year: "numeric" })}</td>
+                                    <td className="max-w-[180px] px-3 py-3 text-white/70">
+                                        <div className="max-w-[180px] space-y-1">
+                                            {e.lines.map((line, lineIndex) => (
+                                                <div key={lineIndex} className="truncate">{line.title?.trim() || "—"}</div>
+                                            ))}
+                                        </div>
+                                    </td>
                                     <td className="max-w-[180px] truncate px-3 py-3 text-white/70">{e.description}</td>
                                     <td className="whitespace-nowrap px-3 py-3 text-white/65">{money(d)}</td>
                                     <td className="whitespace-nowrap px-3 py-3 text-white/65">{money(c)}</td>
@@ -356,7 +362,7 @@ export default function StudentJournalEntries() {
                                         </div>
                                     </td>
                                 </tr>;
-                            })}{Array.from({ length: Math.max(0, pageSize - shown.length) }).map((_, i) => <tr key={`spacer-${i}`} aria-hidden="true" className="pointer-events-none"><td colSpan={8} className="h-[44px] border-0 p-0" /></tr>)}</tbody>
+                            })}{Array.from({ length: Math.max(0, pageSize - shown.length) }).map((_, i) => <tr key={`spacer-${i}`} aria-hidden="true" className="pointer-events-none"><td colSpan={9} className="h-[44px] border-0 p-0" /></tr>)}</tbody>
                         </table>{shown.length === 0 && <div className="flex h-[440px] items-center justify-center px-5 text-center text-sm text-white/40">No journal entries found.</div>}</div>
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] px-4 py-3">
                         <p className="text-[11px] text-white/40">Showing {filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} entries</p>
@@ -424,7 +430,6 @@ export default function StudentJournalEntries() {
                         <Eye size={13} className="mr-1 inline" />View Full Entry</button>
                 </div> : <div className="p-10 text-center text-sm text-white/40">Select an entry to view its details.</div>}</Panel>
             </div>
-           
         </div>
         {modal && <EntryModal key={modal.entry.id || modal.entry.ref} entry={modal.entry} accounts={accounts} readOnly={modal.mode === "view"} onClose={() => setModal(null)} onSave={saveEntry} />}
         {deleteTarget && <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#07111F]/75 p-4 backdrop-blur-sm" onMouseDown={e => e.target === e.currentTarget && setDeleteTarget(null)}>

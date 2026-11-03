@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Plus, Search, Eye, Pencil, Trash2, X, ChevronLeft, ChevronRight, Filter, Wallet, TrendingUp, Scale, CircleDollarSign, CalendarDays, Layers3, Info, CheckCircle2, AlertCircle, AlertTriangle, Save, } from "lucide-react";
+
+import { BookOpen, Plus, Search, Eye, Pencil, Trash2, X, ChevronLeft, ChevronRight, Filter, Wallet, TrendingUp, Scale, CircleDollarSign, CalendarDays, Layers3, Info, CheckCircle2, AlertCircle, AlertTriangle, Save, NotebookPen, } from "lucide-react";
+
 import StudentLayout from "../components/layout/studentLayout";
 
 const TYPES = ["Asset", "Liability", "Equity", "Revenue", "Expense"];
@@ -19,12 +21,10 @@ const generateAccountCode = (type, accountList, currentId = null) => {
         .map(account => String(account.code || ""))
         .filter(code => code.startsWith(prefix) && /^\d{3}$/.test(code))
         .map(Number);
-
     let nextNumber = Number(`${prefix}01`);
     while (usedCodes.includes(nextNumber)) {
         nextNumber += 1;
     }
-
     return String(nextNumber).padStart(3, "0");
 };
 
@@ -177,13 +177,9 @@ export default function StudentChartOfAccounts() {
         setSelected(savedAccount);
         setMessage("");
         setModal(false);
-        if (isNew && taskWorkflowAdd && activeTask) {
-            window.location.assign("/student/accounting/journal-entries?openCreateEntry=1");
-        }
         setTaskWorkflowAdd(false);
     };
     const remove = (a) => setDeleteTarget(a);
-
     const confirmDelete = () => {
         if (!deleteTarget) return;
         setAccounts(prev => prev.filter(x => x.id !== deleteTarget.id));
@@ -203,8 +199,22 @@ export default function StudentChartOfAccounts() {
                     <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Chart of Accounts</h1>
                     <p className="mt-1 text-sm text-white/50">Set up your account list before recording journal entries.</p>
                 </div>
-                <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-xl bg-[#A9E5D2] px-4 py-2.5 text-sm font-bold text-[#0B1728] transition hover:bg-[#c5f3e5]">
-                    <Plus size={17} /> Add Account</button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={openAdd}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#A9E5D2] px-4 py-2.5 text-sm font-bold text-[#0B1728] transition hover:bg-[#c5f3e5]"
+                    >
+                        <Plus size={17} />
+                        Add Account
+                    </button>
+                    <button
+                        onClick={() => window.location.assign("/student/accounting/journal-entries")}
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#A9E5D2]/30 px-4 py-2.5 text-sm font-semibold text-[#A9E5D2] transition hover:bg-[#A9E5D2]/10"
+                    >
+                        <NotebookPen size={17} />
+                        Journal Entries
+                    </button>
+                </div>
             </section>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">{statCards.map((s) => <div key={s.title} className="rounded-2xl border border-white/[0.10] bg-gradient-to-br from-[#17283A]/90 to-[#0B1728]/90 p-4">
                 <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl ${s.color}`}>
@@ -213,7 +223,6 @@ export default function StudentChartOfAccounts() {
                 <p className="text-[11px] text-white/45">{s.title}</p>
                 <p className="mt-1 text-2xl font-bold tabular-nums">{s.value}</p>
             </div>)}</div>
-         
             <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(280px,.85fr)]">
                 <Panel title={`Account List (${filtered.length})`} icon={BookOpen}>
                     <div className="flex flex-col gap-3 border-b border-white/[0.07] p-4 lg:flex-row lg:items-center">
@@ -327,7 +336,6 @@ export default function StudentChartOfAccounts() {
                     </> : <div className="py-12 text-center text-sm text-white/40">Select an account to view its details.</div>}</div>
                 </Panel>
             </div>
-          
         </div>
         {modal && <Modal title={viewOnly ? "Account Details" : form.id ? "Edit Account" : "Add Account"} onClose={() => { setModal(false); setMessage(""); setTaskWorkflowAdd(false); setActiveTask(null); }} footer={<>
             <button
