@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
         $generalSettings = $generalSetting?->value ?? [];
         $logoPath = $generalSettings['logoPath'] ?? null;
         $logoUrl = $logoPath ? Storage::disk('public')->url($logoPath) : null;
+        
 
         if ($logoUrl) {
             $logoUrl .= '?v='.urlencode((string) $generalSetting?->updated_at?->timestamp);
@@ -57,6 +58,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user() ?? $request->user('student'),
             ],
+
+            'flash' => [
+            'success' => fn () => $request->session()->get('success'),
+            'error' => fn () => $request->session()->get('error'),
+            ],
         ];
+        
+
     }
 }

@@ -30,7 +30,7 @@ class FacultyPasswordController extends Controller
             'password' => [
                 'required',
                 'confirmed',
-                PasswordRule::min(12),
+                PasswordRule::min(8),
             ],
         ]);
 

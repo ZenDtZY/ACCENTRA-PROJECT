@@ -104,6 +104,7 @@ export default function StudentManagement() {
     availableSections = [],
     availableSubjects = [],
     nextStudentId = "",
+    flash = {},
 
    } = usePage().props;
 
@@ -849,6 +850,19 @@ const handleSubmit = (event) => {
 
 
         <div className="mt-6 min-w-0 space-y-5">
+
+          {/* FLASH MESSAGES */}
+{flash.error && (
+    <div className="mb-4 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        {flash.error}
+    </div>
+)}
+
+{flash.success && (
+    <div className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+        {flash.success}
+    </div>
+)}
 
           {/* PAGE HEADER */}
 

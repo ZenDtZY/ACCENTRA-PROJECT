@@ -550,58 +550,58 @@ public function update(Request $request, Student $student)
 
     // 6. Delete Student
 
-    public function destroy(Student $student)
-
+    // 6. Delete Student
+public function destroy(Student $student)
 {
+    // Check whether this student's Chart of Accounts
+    // are referenced by existing journal entry lines.
+    $hasJournalEntries = DB::table('chart_of_accounts')
+        ->join(
+            'journal_entry_lines',
+            'chart_of_accounts.id',
+            '=',
+            'journal_entry_lines.chart_of_account_id'
+        )
+        ->where('chart_of_accounts.student_id', $student->id)
+        ->exists();
+
+    // Stop deletion if accounting records exist.
+    if ($hasJournalEntries) {
+        return redirect()
+            ->back()
+            ->with(
+                'error',
+                'Cannot delete this student because their Chart of Accounts are used in existing journal entries. Please deactivate the student instead to preserve their accounting records.'
+            );
+    }
 
     DB::transaction(function () use ($student) {
-
         $name = $student->name;
-
         $userId = $student->user_id;
 
-
-
+        // Delete the student record.
         $student->delete();
 
-
-
+        // Delete the linked user account.
         if ($userId) {
-
             User::whereKey($userId)
-
                 ->where('role', 'Student')
-
                 ->delete();
-
         }
 
-
-
+        // Record the activity.
         ActivityLog::create([
-
             'actor' => 'Admin',
-
             'action' => 'deleted a student',
-
             'module' => 'Student Management',
-
             'description' => $name,
-
             'icon' => 'user-minus',
-
         ]);
-
     });
 
-
-
     return redirect()
-
         ->route('students')
-
         ->with('success', 'Student and linked account deleted successfully!');
-
 }
 
 

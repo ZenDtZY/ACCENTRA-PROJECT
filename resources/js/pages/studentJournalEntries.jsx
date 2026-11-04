@@ -1,33 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
 import { NotebookPen, Plus, Search, Eye, Pencil, Trash2, X, ChevronLeft, ChevronRight, CalendarDays, CheckCircle2, Clock3, AlertTriangle, Save, Send, Info, FileText, Calculator, RotateCcw, } from "lucide-react";
 import StudentLayout from "../components/layout/studentLayout";
 
-const seedAccounts = [
-    { code: "101", title: "Cash", type: "Asset", nature: "Debit", status: "Active" },
-    { code: "102", title: "Accounts Receivable", type: "Asset", nature: "Debit", status: "Active" },
-    { code: "103", title: "Supplies", type: "Asset", nature: "Debit", status: "Active" },
-    { code: "104", title: "Equipment", type: "Asset", nature: "Debit", status: "Active" },
-    { code: "301", title: "Owner's Capital", type: "Equity", nature: "Credit", status: "Active" },
-    { code: "401", title: "Sales Revenue", type: "Revenue", nature: "Credit", status: "Active" },
-    { code: "501", title: "Electricity Expense", type: "Expense", nature: "Debit", status: "Active" },
-];
 
-const initialEntries = [
-    { id: 1, ref: "JE-001", date: "2026-09-01", description: "Initial capital investment", status: "Posted", lines: [{ code: "101", title: "Cash", explanation: "Initial investment", debit: "100000", credit: "" }, { code: "301", title: "Owner's Capital", explanation: "Initial investment", debit: "", credit: "100000" }] },
-    { id: 2, ref: "JE-002", date: "2026-09-03", description: "Purchased office supplies", status: "Posted", lines: [{ code: "103", title: "Supplies", explanation: "Purchased supplies", debit: "10000", credit: "" }, { code: "101", title: "Cash", explanation: "Paid in cash", debit: "", credit: "10000" }] },
-    { id: 3, ref: "JE-003", date: "2026-09-05", description: "Sold school materials", status: "Draft", lines: [{ code: "101", title: "Cash", explanation: "Cash sale", debit: "20000", credit: "" }, { code: "401", title: "Sales Revenue", explanation: "Cash sale", debit: "", credit: "20000" }] },
-    { id: 4, ref: "JE-004", date: "2026-09-08", description: "Paid monthly rent", status: "Posted", lines: [{ code: "501", title: "Rent Expense", explanation: "Monthly rent", debit: "15000", credit: "" }, { code: "101", title: "Cash", explanation: "Rent payment", debit: "", credit: "15000" }] },
-    { id: 5, ref: "JE-005", date: "2026-09-10", description: "Purchased equipment on account", status: "Posted", lines: [{ code: "104", title: "Equipment", explanation: "Equipment purchase", debit: "25000", credit: "" }, { code: "102", title: "Accounts Payable", explanation: "Purchase on account", debit: "", credit: "25000" }] },
-    { id: 6, ref: "JE-006", date: "2026-09-12", description: "Collected receivable from customer", status: "Posted", lines: [{ code: "101", title: "Cash", explanation: "Collection", debit: "12000", credit: "" }, { code: "102", title: "Accounts Receivable", explanation: "Customer payment", debit: "", credit: "12000" }] },
-    { id: 7, ref: "JE-007", date: "2026-09-15", description: "Paid electricity bill", status: "Draft", lines: [{ code: "501", title: "Electricity Expense", explanation: "Utility bill", debit: "3500", credit: "" }, { code: "101", title: "Cash", explanation: "Cash payment", debit: "", credit: "3500" }] },
-    { id: 8, ref: "JE-008", date: "2026-09-18", description: "Received service income", status: "Posted", lines: [{ code: "101", title: "Cash", explanation: "Service payment", debit: "8000", credit: "" }, { code: "401", title: "Sales Revenue", explanation: "Service income", debit: "", credit: "8000" }] },
-    { id: 9, ref: "JE-009", date: "2026-09-21", description: "Purchased supplies for cash", status: "Draft", lines: [{ code: "103", title: "Supplies", explanation: "Office supplies", debit: "4500", credit: "" }, { code: "101", title: "Cash", explanation: "Cash purchase", debit: "", credit: "4500" }] },
-    { id: 10, ref: "JE-010", date: "2026-09-25", description: "Owner additional investment", status: "Posted", lines: [{ code: "101", title: "Cash", explanation: "Additional investment", debit: "30000", credit: "" }, { code: "301", title: "Owner's Capital", explanation: "Additional capital", debit: "", credit: "30000" }] },
-];
+const blankLine = () => ({
+    account_id: "",
+    code: "",
+    title: "",
+    explanation: "",
+    debit: "",
+    credit: "",
+});
 
-const blankLine = () => ({ code: "", title: "", explanation: "", debit: "", credit: "" });
-
-const blankEntry = () => ({ ref: "", date: new Date().toISOString().slice(0, 10), description: "", notes: "", status: "Draft", lines: [blankLine(), blankLine()] });
+    const blankEntry = () => ({
+        ref: "",
+        date: new Date().toISOString().slice(0, 10),
+        description: "",
+        notes: "",
+        status: "Draft",
+        period: "End of Month",
+        lines: [blankLine(), blankLine()],
+    });
 
 const money = n => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(n || 0));
 
@@ -53,10 +47,34 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
     const credit = form.lines.reduce((n, x) => n + Number(x.credit || 0), 0);
     const balanced = debit > 0 && Math.abs(debit - credit) < 0.005;
     const updateLine = (index, key, value) => setForm(prev => ({ ...prev, lines: prev.lines.map((line, i) => i === index ? { ...line, [key]: value } : line) }));
-    const chooseAccount = (index, code) => { const account = accounts.find(a => a.code === code); setForm(prev => ({ ...prev, lines: prev.lines.map((line, i) => i === index ? { ...line, code, title: account?.title || "" } : line) })); };
+    const chooseAccount = (index, code) => {
+    const account = accounts.find(
+        (a) => String(a.code) === String(code)
+    );
+
+    setForm((prev) => ({
+        ...prev,
+        lines: prev.lines.map((line, i) =>
+            i === index
+                ? {
+                    ...line,
+                    account_id: account?.id || "",
+                    code: account?.code || "",
+                    title: account?.title || "",
+                }
+                : line
+        ),
+    }));
+};
     const save = (status) => {
-        if (!form.date || !form.description.trim())
-            return setError("Enter the transaction date and description.");
+        const transactionDate = String(form.date ?? "").trim();
+const transactionDescription = String(form.description ?? "").trim();
+
+if (!transactionDate || !transactionDescription) {
+    console.log("Journal Entry Form:", form);
+
+    return setError("Enter the transaction date and description.");
+}
         if (form.lines.length < 2 || form.lines.some(l => !l.code || (!Number(l.debit) && !Number(l.credit))))
             return setError("Add at least two complete journal lines with an account and an amount.");
         if (form.lines.some(l => Number(l.debit) > 0 && Number(l.credit) > 0))
@@ -91,11 +109,34 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
                     </div>
                     <div>
                         <label className={label}>Transaction Date *</label>
-                        <input disabled={readOnly} type="date" className={field} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+                        <input
+                            disabled={readOnly}
+                            type="date"
+                            className={field}
+                            value={form.date ?? ""}
+                            onChange={(e) =>
+                                setForm((prev) => ({
+                                    ...prev,
+                                    date: e.target.value,
+                                }))
+                            }
+                        />
                     </div>
                     <div>
                         <label className={label}>Description *</label>
-                        <input disabled={readOnly} className={field} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="e.g. Purchased office supplies" />
+                        <input
+                        disabled={readOnly}
+                        type="text"
+                        className={field}
+                        value={form.description ?? ""}
+                        onChange={(e) =>
+                            setForm((prev) => ({
+                                ...prev,
+                                description: e.target.value,
+                            }))
+                        }
+                        placeholder="e.g. Purchased office supplies"
+                    />
                     </div>
                 </div>
                 <div className="overflow-hidden rounded-xl border border-white/10">
@@ -118,8 +159,23 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
                             <tbody className="divide-y divide-white/[0.06]">{form.lines.map((line, i) => <tr key={i}>
                                 <td className="px-3 py-2.5 text-white/40">{i + 1}</td>
                                 <td className="w-[220px] px-3 py-2.5">
-                                    <select disabled={readOnly} className={field} value={line.code} onChange={e => chooseAccount(i, e.target.value)}>
-                                        <option value="">Select account</option>{accounts.filter(a => a.status === "Active").map(a => <option key={a.code} value={a.code}>{a.code} — {a.title}</option>)}</select>{line.title && <p className="mt-1 text-[10px] text-white/40">{line.title}</p>}</td>
+                                    <select
+                                        disabled={readOnly}
+                                        className={field}
+                                        value={line.code}
+                                        onChange={(e) => chooseAccount(i, e.target.value)}
+                                    >
+                                        <option value="">Select account</option>
+
+                                        {accounts
+                                            .filter((a) => a.status === "Active")
+                                            .map((a) => (
+                                                <option key={a.id} value={a.code}>
+                                                    {a.code} — {a.title}
+                                                </option>
+                                            ))}
+                                    </select>
+                                {line.title && <p className="mt-1 text-[10px] text-white/40">{line.title}</p>}</td>
                                 <td className="px-3 py-2.5">
                                     <input disabled={readOnly} className={field} value={line.explanation} onChange={e => updateLine(i, "explanation", e.target.value)} placeholder="Enter a description" />
                                 </td>
@@ -171,17 +227,14 @@ function EntryModal({ entry, accounts, onClose, onSave, readOnly = false }) {
 }
 
 export default function StudentJournalEntries() {
-    const [entries, setEntries] = useState(initialEntries);
-    const [accounts, setAccounts] = useState(() => {
-        try {
-            const saved = sessionStorage.getItem("accentra_student_accounts");
-            const parsed = saved ? JSON.parse(saved) : null;
-            return Array.isArray(parsed) ? parsed : seedAccounts;
-        }
-        catch {
-            return seedAccounts;
-        }
-    });
+    const { entries: databaseEntries = [], accounts: databaseAccounts = [] } =
+    usePage().props;
+
+const entries = Array.isArray(databaseEntries) ? databaseEntries : [];
+
+const accounts = Array.isArray(databaseAccounts)
+    ? databaseAccounts
+    : [];
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All Statuses");
     const [from, setFrom] = useState("");
@@ -189,7 +242,7 @@ export default function StudentJournalEntries() {
     const [page, setPage] = useState(1);
     const [modal, setModal] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
-    const [selected, setSelected] = useState(initialEntries[0]);
+    const [selected, setSelected] = useState(null);
     const [period, setPeriod] = useState("End of Month");
     const [activeTask, setActiveTask] = useState(() => {
         try {
@@ -199,30 +252,7 @@ export default function StudentJournalEntries() {
             return null;
         }
     });
-    useEffect(() => {
-        const loadAccounts = () => {
-            try {
-                const saved = sessionStorage.getItem("accentra_student_accounts");
-                const parsed = saved ? JSON.parse(saved) : null;
-
-                if (Array.isArray(parsed)) {
-                    setAccounts(parsed);
-                }
-            }
-            catch {
-                // Keep the fallback account list if session data is unavailable.
-            }
-        };
-
-        loadAccounts();
-        window.addEventListener("focus", loadAccounts);
-        window.addEventListener("storage", loadAccounts);
-
-        return () => {
-            window.removeEventListener("focus", loadAccounts);
-            window.removeEventListener("storage", loadAccounts);
-        };
-    }, []);
+    
     const pageSize = 10;
     const filtered = useMemo(() => entries.filter(e => (e.ref + " " + e.description).toLowerCase().includes(search.toLowerCase()) && (statusFilter === "All Statuses" || e.status === statusFilter) && (!from || e.date >= from) && (!to || e.date <= to)), [entries, search, statusFilter, from, to]);
     const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -230,7 +260,12 @@ export default function StudentJournalEntries() {
     const totalPosted = entries.filter(e => e.status === "Posted").length;
     const totalDraft = entries.filter(e => e.status === "Draft").length;
     const unbalanced = entries.filter(e => { const d = e.lines.reduce((n, l) => n + Number(l.debit || 0), 0); const c = e.lines.reduce((n, l) => n + Number(l.credit || 0), 0); return Math.abs(d - c) >= .005; }).length;
-    const openNew = () => setModal({ mode: "edit", entry: { ...blankEntry(), ref: `JE-${String(Math.max(0, ...entries.map(e => Number(e.ref?.split("-")[1]) || 0)) + 1).padStart(3, "0")}` } });
+    const openNew = () => {
+    setModal({
+        mode: "edit",
+        entry: blankEntry(),
+    });
+};
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
 
@@ -257,17 +292,80 @@ export default function StudentJournalEntries() {
             );
         }
     }, []);
-    const saveEntry = (entry) => { const saved = { ...entry, id: entry.id || Date.now(), ref: entry.ref || `JE-${String(entries.length + 1).padStart(3, "0")}` }; setEntries(prev => entry.id ? prev.map(e => e.id === entry.id ? saved : e) : [...prev, saved]); setSelected(saved); setModal(null); };
+    const saveEntry = (entry) => {
+    const payload = {
+        date: entry.date,
+        description: entry.description,
+        notes: entry.notes || null,
+        status: entry.status,
+        period: entry.period || period,
+        lines: entry.lines.map((line) => ({
+            account_id: line.account_id,
+            explanation: line.explanation || null,
+            debit: Number(line.debit || 0),
+            credit: Number(line.credit || 0),
+        })),
+    };
+
+    const options = {
+        preserveScroll: true,
+
+        onSuccess: () => {
+            console.log("Journal entry saved successfully.");
+            setModal(null);
+        },
+
+        onError: (errors) => {
+            console.error("Journal Entry Validation Errors:", errors);
+
+            const messages = Object.values(errors).flat().join("\n");
+
+            window.alert(
+                messages || "Unable to save journal entry. Check your inputs."
+            );
+        },
+
+        onFinish: () => {
+            console.log("Journal entry request finished.");
+        },
+    };
+
+    if (entry.id) {
+        router.put(
+            `/student/accounting/journal-entries/${entry.id}`,
+            payload,
+            options
+        );
+    } else {
+        router.post(
+            "/student/accounting/journal-entries",
+            payload,
+            options
+        );
+    }
+};
     const deleteEntry = (entry) => {
         if (entry.status === "Posted") return;
         setDeleteTarget(entry);
     };
     const confirmDelete = () => {
-        if (!deleteTarget) return;
-        setEntries(prev => prev.filter(e => e.id !== deleteTarget.id));
-        if (selected?.id === deleteTarget.id) setSelected(null);
-        setDeleteTarget(null);
-    };
+    if (!deleteTarget) return;
+
+    router.delete(
+        `/student/accounting/journal-entries/${deleteTarget.id}`,
+        {
+            preserveScroll: true,
+
+            onSuccess: () => {
+                if (selected?.id === deleteTarget.id) {
+                    setSelected(null);
+                }
+
+                setDeleteTarget(null);
+            },
+        }
+    );
+};
     const resetFilters = () => { setSearch(""); setStatusFilter("All Statuses"); setFrom(""); setTo(""); setPage(1); };
     const stats = [{ title: "Total Entries", value: entries.length, icon: NotebookPen, color: "text-sky-300 bg-sky-400/10" }, { title: "Posted Entries", value: totalPosted, icon: CheckCircle2, color: "text-emerald-300 bg-emerald-400/10" }, { title: "Draft Entries", value: totalDraft, icon: Clock3, color: "text-amber-300 bg-amber-400/10" }, { title: "Unbalanced Entries", value: unbalanced, icon: AlertTriangle, color: "text-rose-300 bg-rose-400/10" }];
     return <StudentLayout activeMenu="Journal Entries" title="Journal Entries" subtitle="Create, review, and manage your accounting transactions" showPageInfo={false}
@@ -293,7 +391,11 @@ export default function StudentJournalEntries() {
                 <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                         <label className={label}>Account Group</label>
-                        <input disabled value={accounts.find(a => a.accountGroup)?.accountGroup || "ABC School Supplies"} className={`${field} opacity-75`} />
+                        <input
+                        disabled
+                        value={accounts.find(a => a.account_group)?.account_group || "No Account Group"}
+                        className={`${field} opacity-75`}
+                    />
                     </div>
                     <div>
                         <label className={label}>Account Period</label>
