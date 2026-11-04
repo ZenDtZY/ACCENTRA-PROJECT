@@ -168,7 +168,7 @@ export default function StudentChartOfAccounts() {
             sessionStorage.setItem("accentra_student_accounts", JSON.stringify(updatedAccounts));
         }
         catch {
-            setMessage("Unable to save the account to this session. Please try again.");
+            setMessage("Unable to save the account. Please try again.");
             return;
         }
         setAccounts(updatedAccounts);
