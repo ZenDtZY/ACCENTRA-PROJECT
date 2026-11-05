@@ -1,9 +1,8 @@
-
 import { createInertiaApp } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import AppStartupAnimation from './components/pwa/appStartupAnimation';
-
+import InstallAppButton from './components/pwa/installAppButton';
 
 import type { ComponentType } from 'react';
 
@@ -11,9 +10,7 @@ type InertiaPageModule = {
     default: ComponentType<any>;
 };
 
-const pages = import.meta.glob<InertiaPageModule>(
-    './pages/**/*.{jsx,tsx}'
-);
+const pages = import.meta.glob<InertiaPageModule>('./pages/**/*.{jsx,tsx}');
 
 void createInertiaApp({
     title: (title) => title || 'ACCENTRA',
@@ -39,7 +36,9 @@ void createInertiaApp({
         const Page = module.default;
 
         return function BrandedPage(props: Record<string, unknown>) {
-            const branding = (props as { branding?: { logoUrl?: string | null } }).branding;
+            const branding = (
+                props as { branding?: { logoUrl?: string | null } }
+            ).branding;
 
             useEffect(() => {
                 const logoUrl = branding?.logoUrl || '/favicon.svg';
@@ -49,7 +48,8 @@ void createInertiaApp({
                     'link[rel="shortcut icon"]',
                     'link[rel="apple-touch-icon"]',
                 ]) {
-                    let link = document.head.querySelector<HTMLLinkElement>(selector);
+                    let link =
+                        document.head.querySelector<HTMLLinkElement>(selector);
 
                     if (!link) {
                         link = document.createElement('link');
@@ -83,7 +83,8 @@ void createInertiaApp({
             <>
                 <App {...props} />
                 <AppStartupAnimation />
-            </>
+                <InstallAppButton />
+            </>,
         );
     },
 
