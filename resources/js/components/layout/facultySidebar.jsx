@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import Icon from "../common/icon";
-import SystemLogo from "../common/systemLogo";
+
 
 const menuItems = [
   { label: "Dashboard", icon: "layout-dashboard", path: "/faculty/dashboard" },
@@ -53,7 +53,11 @@ export default function FacultySidebar({ activeMenu = "Dashboard", onMenuChange,
         <div className="relative shrink-0 border-b border-white/[0.08] px-6 pb-6 pt-7">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#A9E5D2]/30 bg-[#A9E5D2]/10 shadow-[0_0_18px_rgba(169,229,210,0.10)]">
-              <SystemLogo className="h-9 w-9 object-contain" />
+              <img
+                src="/images/accentra-logoo.png"
+                alt="ACCENTRA Logo"
+                className="h-full w-full rounded-full object-contain p-1"
+              />
             </div>
             <div>
               <div className="text-[21px] font-bold tracking-tight text-white">ACCENTRA</div>

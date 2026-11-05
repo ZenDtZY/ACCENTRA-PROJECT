@@ -71,14 +71,24 @@ class ChartOfAccountsController extends Controller
     }
 
     public function destroy(int $account)
-    {
-        $this->currentStudent()
-            ->chartOfAccounts()
-            ->findOrFail($account)
+{
+    $chartOfAccount = $this->currentStudent()
+        ->chartOfAccounts()
+        ->findOrFail($account);
+
+    DB::transaction(function () use ($chartOfAccount) {
+        // Delete journal entry lines referencing this account
+        DB::table('journal_entry_lines')
+            ->where('chart_of_account_id', $chartOfAccount->id)
             ->delete();
 
-        return to_route('student.accounting.chart-of-accounts');
-    }
+        // Delete the chart of account
+        $chartOfAccount->delete();
+    });
+
+    return to_route('student.accounting.chart-of-accounts')
+        ->with('success', 'Account deleted successfully.');
+}
 
     private function validateAccount(
         Request $request,

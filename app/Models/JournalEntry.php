@@ -11,6 +11,10 @@ class JournalEntry extends Model
     protected $fillable = [
         'student_id',
         'reference_no',
+        'report_uuid',
+        'report_reference_no',
+        'company_name',
+        'report_title',
         'entry_date',
         'description',
         'notes',
@@ -32,3 +36,4 @@ class JournalEntry extends Model
         return $this->hasMany(JournalEntryLine::class);
     }
 }
+

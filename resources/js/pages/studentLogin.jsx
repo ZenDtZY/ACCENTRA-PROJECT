@@ -2,7 +2,6 @@ import { useState } from "react";
 
 import { Head, useForm } from "@inertiajs/react";
 
-import SystemLogo from "../components/common/systemLogo";
 
 function FieldIcon({ type }) {
 
@@ -168,9 +167,13 @@ export default function StudentLogin({ status }) {
 
                         >
 
-<div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/10 transition duration-300 hover:scale-110">
-    <SystemLogo className="h-9 w-9 object-contain" />
-</div>
+                            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-white/10 transition duration-300 hover:scale-110">
+                                <img
+                                    src="/images/accentra-logoo.png"
+                                    alt="ACCENTRA Logo"
+                                    className="h-full w-full object-contain"
+                                />
+                            </div>
 
                             <span className="text-2xl font-semibold tracking-[0.2em] sm:text-3xl">
 

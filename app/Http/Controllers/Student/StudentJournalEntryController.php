@@ -8,21 +8,20 @@ use App\Models\JournalEntry;
 use App\Models\Student;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StudentJournalEntryController extends Controller
 {
-    /**
-     * Display the student's journal entries and chart of accounts.
-     */
     public function index(): Response
     {
         $student = Auth::guard('student')->user();
-
         abort_unless($student, 403);
 
         $accounts = ChartOfAccount::query()
@@ -30,27 +29,35 @@ class StudentJournalEntryController extends Controller
             ->orderBy('code')
             ->get();
 
-        $entries = JournalEntry::query()
+        $records = JournalEntry::query()
             ->where('student_id', $student->id)
             ->with('lines.chartOfAccount')
             ->latest('entry_date')
             ->latest('id')
-            ->get()
-            ->map(function ($entry) {
+            ->get();
+
+        // New reports share report_uuid. Older entries have no report_uuid and
+        // are exposed as one-entry reports, so existing data remains visible.
+        $reports = $records->groupBy(
+            fn (JournalEntry $entry) => $entry->report_uuid ?: 'legacy-' . $entry->id
+        )->map(function (Collection $group) {
+            /** @var JournalEntry $first */
+            $first = $group->first();
+
+            $children = $group->sortBy('id')->values()->map(function (JournalEntry $entry) {
                 return [
                     'id' => $entry->id,
                     'ref' => $entry->reference_no,
-                    'date' => $entry->entry_date->format('Y-m-d'),
+                    'date' => $entry->entry_date?->format('Y-m-d'),
                     'description' => $entry->description,
                     'notes' => $entry->notes,
                     'status' => $entry->status,
-                    'period' => $entry->period,
                     'lines' => $entry->lines->map(function ($line) {
                         return [
                             'id' => $line->id,
                             'account_id' => $line->chart_of_account_id,
-                            'code' => $line->chartOfAccount->code,
-                            'title' => $line->chartOfAccount->title,
+                            'code' => $line->chartOfAccount?->code,
+                            'title' => $line->chartOfAccount?->title,
                             'explanation' => $line->explanation,
                             'debit' => (float) $line->debit,
                             'credit' => (float) $line->credit,
@@ -59,186 +66,234 @@ class StudentJournalEntryController extends Controller
                 ];
             });
 
+            return [
+                // The first child ID is the stable route key for update/delete.
+                'id' => $first->id,
+                'ref' => $first->report_reference_no ?: $first->reference_no,
+                'date' => $children->first()['date'] ?? null,
+                'description' => $first->report_title ?: ($children->count() . ' transactions'),
+                'companyName' => $first->company_name,
+                'reportTitle' => $first->report_title,
+                'period' => $first->period,
+                'status' => $first->status,
+                'entries' => $children,
+            ];
+        })->values();
+
         return Inertia::render('studentJournalEntries', [
             'accounts' => $accounts,
-            'entries' => $entries,
+            'entries' => $reports,
         ]);
     }
 
-    /**
-     * Store a new journal entry and its lines.
-     */
     public function store(Request $request): RedirectResponse
     {
         $student = Auth::guard('student')->user();
-
         abort_unless($student, 403);
 
-        $validated = $this->validateEntry($request, $student->id);
+        $validated = $this->validateReport($request, (int) $student->id);
 
         DB::transaction(function () use ($validated, $student) {
-            // Lock the student row while generating the next reference number.
             Student::whereKey($student->id)->lockForUpdate()->firstOrFail();
 
-            $latestEntry = JournalEntry::where('student_id', $student->id)
+            $latest = JournalEntry::query()
+                ->where('student_id', $student->id)
                 ->latest('id')
                 ->first();
 
-            $nextNumber = $latestEntry
-                ? ((int) preg_replace('/\D/', '', $latestEntry->reference_no)) + 1
+            $lastReference = $latest?->report_reference_no ?: $latest?->reference_no;
+            $nextNumber = $lastReference
+                ? ((int) preg_replace('/\D/', '', $lastReference)) + 1
                 : 1;
 
-            $entry = JournalEntry::create([
-                'student_id' => $student->id,
-                'reference_no' => 'JE-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT),
-                'entry_date' => $validated['date'],
-                'description' => $validated['description'],
-                'notes' => $validated['notes'] ?? null,
-                'status' => $validated['status'],
-                'period' => $validated['period'] ?? null,
-            ]);
+            $reportReference = 'JE-' . str_pad((string) $nextNumber, 3, '0', STR_PAD_LEFT);
+            $reportUuid = (string) Str::uuid();
 
-            $entry->lines()->createMany(
-                $this->prepareLines($validated['lines'])
-            );
+            foreach ($validated['entries'] as $index => $item) {
+                $childReference = $index === 0
+                    ? $reportReference
+                    : $reportReference . '-' . str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
+
+                $entry = JournalEntry::create([
+                    'student_id' => $student->id,
+                    'reference_no' => $childReference,
+                    'report_uuid' => $reportUuid,
+                    'report_reference_no' => $reportReference,
+                    'company_name' => $validated['companyName'] ?? null,
+                    'report_title' => $validated['reportTitle'] ?? null,
+                    'entry_date' => $item['date'],
+                    'description' => $item['description'],
+                    'notes' => $item['notes'] ?? null,
+                    'status' => $validated['status'],
+                    'period' => $validated['period'] ?? null,
+                ]);
+
+                $entry->lines()->createMany($this->prepareLines($item['lines']));
+            }
         });
 
-        return back()->with('success', 'Journal entry saved successfully.');
+        return back()->with('success', 'Journal report saved successfully.');
     }
 
-    /**
-     * Update an existing draft journal entry.
-     */
     public function update(Request $request, JournalEntry $journalEntry): RedirectResponse
     {
         $student = Auth::guard('student')->user();
-
         abort_unless($student, 403);
+        abort_unless((int) $journalEntry->student_id === (int) $student->id, 404);
 
-        abort_unless(
-            $journalEntry->student_id === $student->id,
-            404
-        );
+        $group = $this->reportQuery($journalEntry, (int) $student->id)->get();
 
-        abort_if(
-            $journalEntry->status === 'Posted',
-            403,
-            'Posted journal entries cannot be edited.'
-        );
+        $validated = $this->validateReport($request, (int) $student->id);
 
-        $validated = $this->validateEntry($request, $student->id);
+        DB::transaction(function () use ($journalEntry, $student, $group, $validated) {
+            $reportUuid = $journalEntry->report_uuid ?: (string) Str::uuid();
+            $reportReference = $journalEntry->report_reference_no ?: $journalEntry->reference_no;
 
-        DB::transaction(function () use ($journalEntry, $validated) {
-            $journalEntry->update([
-                'entry_date' => $validated['date'],
-                'description' => $validated['description'],
-                'notes' => $validated['notes'] ?? null,
-                'status' => $validated['status'],
-                'period' => $validated['period'] ?? null,
-            ]);
+            $existing = $group->sortBy('id')->values();
 
-            // Replace the old lines with the submitted lines.
-            $journalEntry->lines()->delete();
+            foreach ($validated['entries'] as $index => $item) {
+                $childReference = $index === 0
+                    ? $reportReference
+                    : $reportReference . '-' . str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
 
-            $journalEntry->lines()->createMany(
-                $this->prepareLines($validated['lines'])
-            );
+                $attributes = [
+                    'student_id' => $student->id,
+                    'reference_no' => $childReference,
+                    'report_uuid' => $reportUuid,
+                    'report_reference_no' => $reportReference,
+                    'company_name' => $validated['companyName'] ?? null,
+                    'report_title' => $validated['reportTitle'] ?? null,
+                    'entry_date' => $item['date'],
+                    'description' => $item['description'],
+                    'notes' => $item['notes'] ?? null,
+                    'status' => $validated['status'],
+                    'period' => $validated['period'] ?? null,
+                ];
+
+                if (isset($existing[$index])) {
+                    $entry = $existing[$index];
+                    $entry->update($attributes);
+                    $entry->lines()->delete();
+                } else {
+                    $entry = JournalEntry::create($attributes);
+                }
+
+                $entry->lines()->createMany($this->prepareLines($item['lines']));
+            }
+
+            // Remove only surplus draft children belonging to this report.
+            foreach ($existing->slice(count($validated['entries'])) as $surplus) {
+                $surplus->lines()->delete();
+                $surplus->delete();
+            }
         });
 
-        return back()->with('success', 'Journal entry updated successfully.');
+        return back()->with('success', 'Journal report updated successfully.');
     }
 
-    /**
-     * Delete a draft journal entry.
-     */
     public function destroy(JournalEntry $journalEntry): RedirectResponse
     {
         $student = Auth::guard('student')->user();
-
         abort_unless($student, 403);
+        abort_unless((int) $journalEntry->student_id === (int) $student->id, 404);
 
-        abort_unless(
-            $journalEntry->student_id === $student->id,
-            404
-        );
+        $group = $this->reportQuery($journalEntry, (int) $student->id)->get();
 
-        abort_if(
-            $journalEntry->status === 'Posted',
-            403,
-            'Posted journal entries cannot be deleted.'
-        );
+        DB::transaction(function () use ($group) {
+            foreach ($group as $entry) {
+                $entry->lines()->delete();
+                $entry->delete();
+            }
+        });
 
-        $journalEntry->delete();
-
-        return back()->with('success', 'Journal entry deleted successfully.');
+        return back()->with('success', 'Journal report deleted successfully.');
     }
 
-    /**
-     * Validate the journal entry and its account lines.
-     */
-    private function validateEntry(Request $request, int $studentId): array
+    private function reportQuery(JournalEntry $entry, int $studentId)
+    {
+        $query = JournalEntry::query()->where('student_id', $studentId);
+
+        return $entry->report_uuid
+            ? $query->where('report_uuid', $entry->report_uuid)
+            : $query->whereKey($entry->id);
+    }
+
+    private function validateReport(Request $request, int $studentId): array
     {
         $validated = $request->validate([
-            'date' => ['required', 'date'],
-            'description' => ['required', 'string', 'max:255'],
-            'notes' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['Draft', 'Posted'])],
+            'companyName' => ['nullable', 'string', 'max:255'],
+            'reportTitle' => ['nullable', 'string', 'max:255'],
             'period' => ['nullable', 'string', 'max:255'],
-
-            'lines' => ['required', 'array', 'min:2'],
-            'lines.*.account_id' => [
+            'status' => ['required', Rule::in(['Draft', 'Posted'])],
+            'entries' => ['required', 'array', 'min:1'],
+            'entries.*.date' => ['required', 'date'],
+            'entries.*.description' => ['required', 'string', 'max:255'],
+            'entries.*.notes' => ['nullable', 'string'],
+            'entries.*.lines' => ['required', 'array', 'min:2'],
+            'entries.*.lines.*.account_id' => [
                 'required',
                 'integer',
                 Rule::exists('chart_of_accounts', 'id')
                     ->where('student_id', $studentId)
                     ->where('status', 'Active'),
             ],
-            'lines.*.explanation' => ['nullable', 'string', 'max:255'],
-            'lines.*.debit' => ['required', 'numeric', 'min:0'],
-            'lines.*.credit' => ['required', 'numeric', 'min:0'],
+            'entries.*.lines.*.explanation' => ['nullable', 'string', 'max:255'],
+            'entries.*.lines.*.debit' => ['required', 'numeric', 'min:0'],
+            'entries.*.lines.*.credit' => ['required', 'numeric', 'min:0'],
         ]);
 
-        foreach ($validated['lines'] as $index => $line) {
-            $debit = (float) $line['debit'];
-            $credit = (float) $line['credit'];
+        $overallDebit = 0.0;
+        $overallCredit = 0.0;
 
-            if (($debit > 0 && $credit > 0) || ($debit == 0 && $credit == 0)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    "lines.$index.debit" =>
-                        'Each account line must have either a debit or a credit amount, but not both.',
+        foreach ($validated['entries'] as $entryIndex => $item) {
+            $debit = 0.0;
+            $credit = 0.0;
+
+            foreach ($item['lines'] as $lineIndex => $line) {
+                $lineDebit = (float) $line['debit'];
+                $lineCredit = (float) $line['credit'];
+
+                if (($lineDebit > 0 && $lineCredit > 0) || ($lineDebit == 0 && $lineCredit == 0)) {
+                    throw ValidationException::withMessages([
+                        "entries.$entryIndex.lines.$lineIndex.debit" =>
+                            'Each line must contain either a debit or a credit amount, but not both.',
+                    ]);
+                }
+
+                $debit += $lineDebit;
+                $credit += $lineCredit;
+            }
+
+            $overallDebit += $debit;
+            $overallCredit += $credit;
+
+            if ($validated['status'] === 'Posted' && ($debit <= 0 || abs($debit - $credit) >= 0.005)) {
+                throw ValidationException::withMessages([
+                    "entries.$entryIndex.lines" =>
+                        'Every transaction must balance individually before the report can be posted.',
                 ]);
             }
         }
 
-        if ($validated['status'] === 'Posted') {
-            $totalDebit = collect($validated['lines'])
-                ->sum(fn ($line) => (float) $line['debit']);
-
-            $totalCredit = collect($validated['lines'])
-                ->sum(fn ($line) => (float) $line['credit']);
-
-            if (round($totalDebit, 2) !== round($totalCredit, 2)) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'lines' => 'A journal entry must have equal debit and credit totals before posting.',
-                ]);
-            }
+        if (
+            $validated['status'] === 'Posted' &&
+            ($overallDebit <= 0 || abs($overallDebit - $overallCredit) >= 0.005)
+        ) {
+            throw ValidationException::withMessages([
+                'entries' => 'The complete journal report must have equal total debit and credit before posting.',
+            ]);
         }
 
         return $validated;
     }
 
-    /**
-     * Prepare line data for database insertion.
-     */
     private function prepareLines(array $lines): array
     {
-        return collect($lines)->map(function ($line) {
-            return [
-                'chart_of_account_id' => $line['account_id'],
-                'explanation' => $line['explanation'] ?? null,
-                'debit' => $line['debit'],
-                'credit' => $line['credit'],
-            ];
-        })->all();
+        return collect($lines)->map(fn (array $line) => [
+            'chart_of_account_id' => $line['account_id'],
+            'explanation' => $line['explanation'] ?? null,
+            'debit' => $line['debit'],
+            'credit' => $line['credit'],
+        ])->all();
     }
 }

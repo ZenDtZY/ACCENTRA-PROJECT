@@ -15,6 +15,7 @@ import {
   Users,
   UserRoundCheck,
   UserRoundX,
+  GraduationCap,
 } from "lucide-react";
 
 import Sidebar from "../components/layout/sidebar";

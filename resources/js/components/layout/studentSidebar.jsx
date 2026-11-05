@@ -4,7 +4,7 @@ import { usePage } from '@inertiajs/react';
 
 import Icon from '../common/icon';
 
-import SystemLogo from '../common/systemLogo';
+
 
 const menuItems = [
 
@@ -274,7 +274,11 @@ export default function StudentSidebar({
 
                         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-[#A9E5D2]/30 bg-[#A9E5D2]/10 shadow-[0_0_18px_rgba(169,229,210,0.10)]">
 
-                            <SystemLogo />
+                            <img
+                                src="/images/accentra-logoo.png"
+                                alt="ACCENTRA Logo"
+                                className="h-full w-full rounded-full object-contain p-1"
+                            />
 
                         </div>
 
