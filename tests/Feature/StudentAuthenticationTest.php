@@ -54,7 +54,12 @@ it('allows a student to set a password through an email link and log in', functi
             'password' => $password,
             'password_confirmation' => $password,
         ])
-        ->assertRedirect(route('student.login'));
+        ->assertRedirect(route('student.login'))
+        ->assertSessionHas('success', 'Password updated successfully. Please log in.');
+
+    $this->get(route('student.login'))
+        ->assertInertia(fn ($page) => $page
+            ->where('flash.success', 'Password updated successfully. Please log in.'));
 
     expect(Hash::check($password, $student->fresh()->password))->toBeTrue();
 
@@ -78,7 +83,7 @@ it('allows a student to log in with their student number', function () {
     ]);
 
     $this->post(route('student.login.submit'), [
-        'login' => $student->student_number,
+        'login' => strtolower($student->student_number),
         'password' => $password,
     ])->assertRedirect(route('student.dashboard'));
 
@@ -112,7 +117,9 @@ it('shows an error and removes the reset token if the mail transport fails', fun
 
     $this->from(route('student.password.request'))
         ->post(route('student.password.reset-link.send'), ['email' => $student->email])
-        ->assertSessionHasErrors('email');
+        ->assertSessionHasErrors([
+            'email' => 'We could not send the recovery email. Please contact the administrator to verify the email server settings.',
+        ]);
 
     expect(DB::table('account_password_setup_tokens')->where('account_type', 'Student')->exists())->toBeFalse();
 });

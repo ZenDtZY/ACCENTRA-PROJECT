@@ -3,7 +3,7 @@
 it('includes mobile app installation metadata in the application shell', function () {
     $this->get(route('student.login'))
         ->assertOk()
-        ->assertSee('rel="manifest" href="/manifest.webmanifest"', false)
+        ->assertSee('rel="manifest" href="/system/manifest.webmanifest"', false)
         ->assertSee('apple-touch-icon.png', false)
         ->assertSee('name="theme-color"', false);
 });

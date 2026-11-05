@@ -26,8 +26,8 @@ class StudentLoginController extends Controller
 
         $student = Student::query()
             ->where(function ($query) use ($identifier) {
-                $query->where('student_number', $identifier)
-                    ->orWhereRaw('LOWER(email) = ?', [Str::lower($identifier)]);
+                $query->whereRaw('UPPER(TRIM(student_number)) = ?', [Str::upper($identifier)])
+                    ->orWhereRaw('LOWER(TRIM(email)) = ?', [Str::lower($identifier)]);
             })
             ->where('status', 'Active')
             ->first();

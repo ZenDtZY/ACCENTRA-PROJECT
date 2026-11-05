@@ -1,11 +1,10 @@
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { Mail, ArrowRight, CheckCircle2, CircleAlert, LockKeyhole } from 'lucide-react';
 import SystemLogo from '../components/common/systemLogo';
 
 export default function StudentForgotPassword() {
-    const { flash = {} } = usePage().props;
     const { data, setData, post, processing, errors, wasSuccessful } = useForm({ email: '' });
-    const submitted = wasSuccessful || Boolean(flash.status);
+    const submitted = wasSuccessful;
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -47,7 +46,6 @@ export default function StudentForgotPassword() {
                                         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Request Submitted</h1>
                                         <p className="mt-4 text-sm leading-7 text-white/65">If this email is registered, follow the recovery instructions sent to your inbox.</p>
                                         <div className="mt-6 flex items-start gap-3 rounded-xl border border-[#9CD6C5]/20 bg-[#9CD6C5]/10 p-4"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#A9E5D2]" /><p className="break-all text-sm leading-6 text-white/75">Email address: <span className="font-semibold text-white">{data.email}</span></p></div>
-                                        {flash.status && <p className="mt-4 text-xs leading-5 text-white/70">{flash.status}</p>}
                                         <a href="/student/login" className="group mt-7 flex w-full items-center justify-center gap-3 rounded-xl border border-[#B7E8D9]/40 bg-gradient-to-r from-[#477F73] to-[#528F80] px-5 py-4 font-semibold text-white transition duration-300 hover:from-[#548F80] hover:to-[#65A795]">Return to Student Login <ArrowRight size={18} /></a>
                                     </>
                                 ) : (

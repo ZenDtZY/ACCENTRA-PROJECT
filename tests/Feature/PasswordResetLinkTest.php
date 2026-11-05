@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\PasswordResetLink;
+use App\Models\Faculty;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -51,6 +52,64 @@ it('sends a password reset link and accepts only the new password fields', funct
 
     expect(Hash::check($newPassword, $user->fresh()->password))->toBeTrue()
         ->and(DB::table('account_password_setup_tokens')->exists())->toBeFalse();
+});
+
+it('lets an active faculty member reset their password from the faculty recovery page', function () {
+    Mail::fake();
+
+    $user = User::factory()->create([
+        'email' => 'faculty@example.com',
+        'role' => 'Faculty',
+    ]);
+
+    Faculty::create([
+        'user_id' => $user->id,
+        'faculty_number' => 'FCT-001',
+        'name' => $user->name,
+        'email' => $user->email,
+        'specialization' => 'Accounting',
+        'status' => 'Active',
+    ]);
+
+    $this->from(route('faculty.password.request'))
+        ->post(route('faculty.password.reset-link.send'), ['email' => $user->email])
+        ->assertRedirect(route('faculty.password.request'))
+        ->assertSessionHas('status');
+
+    $resetUrl = null;
+    Mail::assertSent(PasswordResetLink::class, function (PasswordResetLink $mail) use (&$resetUrl) {
+        $resetUrl = $mail->resetUrl;
+
+        return $mail->accountType === 'Faculty';
+    });
+
+    expect($resetUrl)->not->toBeNull();
+
+    $token = basename(parse_url($resetUrl, PHP_URL_PATH));
+    $this->get($resetUrl)
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('accountSetupPassword')
+            ->where('accountType', 'Faculty'));
+
+    $newPassword = 'A-strong-faculty-password-23';
+
+    $this->post(route('password.reset.update', ['token' => $token]), [
+        'password' => $newPassword,
+        'password_confirmation' => $newPassword,
+    ])->assertRedirect(route('faculty.login'))
+        ->assertSessionHas('success', 'Password updated successfully. Please log in.');
+
+    $this->get(route('faculty.login'))
+        ->assertInertia(fn ($page) => $page
+            ->where('flash.success', 'Password updated successfully. Please log in.'));
+
+    expect(Hash::check($newPassword, $user->fresh()->password))->toBeTrue();
+
+    $this->post(route('faculty.login.submit'), [
+        'email' => $user->email,
+        'password' => $newPassword,
+    ])->assertRedirect(route('faculty.dashboard'));
 });
 
 it('rejects invalid, expired, and already-used password reset links', function () {

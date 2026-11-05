@@ -17,7 +17,7 @@ return new class extends Migration
         DB::table('account_id_sequences')->insert([
             [
                 'account_type' => 'Faculty',
-                'next_value' => $this->nextNumber('faculties', 'faculty_number', 'FAC'),
+                'next_value' => $this->nextNumber('faculties', 'faculty_number', 'FCT'),
             ],
             [
                 'account_type' => 'Student',

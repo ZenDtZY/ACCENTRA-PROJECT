@@ -61,7 +61,7 @@ class PasswordResetLinkController extends Controller
                 report($exception);
 
                 throw ValidationException::withMessages([
-                    'email' => 'We could not send the reset link. Check your email address or try again later.',
+                    'email' => 'We could not send the recovery email. Please contact the administrator to verify the email server settings.',
                 ]);
             }
         }
