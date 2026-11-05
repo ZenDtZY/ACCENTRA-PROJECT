@@ -12,50 +12,63 @@ use Illuminate\Validation\ValidationException;
 class FacultyLoginController extends Controller
 {
     public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string'],
+{
+    $credentials = $request->validate([
+        'email' => ['required', 'string', 'max:255'],
+        'password' => ['required', 'string'],
+    ]);
+
+    $identifier = trim($credentials['email']);
+
+    // Find faculty using Faculty ID or Email
+    $faculty = Faculty::query()
+        ->where(function ($query) use ($identifier) {
+            $query->whereRaw(
+                'UPPER(TRIM(faculty_number)) = ?',
+                [strtoupper($identifier)]
+            )->orWhereRaw(
+                'LOWER(TRIM(email)) = ?',
+                [strtolower($identifier)]
+            );
+        })
+        ->first();
+
+    // Check faculty account
+    if (!$faculty || $faculty->status !== 'Active') {
+        throw ValidationException::withMessages([
+            'email' => 'Invalid faculty ID, email, or inactive account.',
         ]);
-
-        $identifier = trim($credentials['email']);
-        $faculty = Faculty::query()
-            ->where(function ($query) use ($identifier) {
-                $query->where('faculty_number', $identifier)
-                    ->orWhereRaw('LOWER(email) = ?', [strtolower($identifier)]);
-            })
-            ->first();
-
-        $user = $faculty
-            ? User::query()->whereKey($faculty->user_id)->where('role', 'Faculty')->first()
-            : null;
-
-        $authenticated = $user && Auth::attempt([
-            'email' => $user->email,
-            'password' => $credentials['password'],
-            'role' => 'Faculty',
-        ], $request->boolean('remember'));
-
-        if (! $authenticated) {
-            throw ValidationException::withMessages([
-                'email' => 'Invalid faculty email or password.',
-            ]);
-        }
-
-        if (! $faculty || $faculty->status !== 'Active') {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            throw ValidationException::withMessages([
-                'email' => 'Your faculty account is inactive or unavailable.',
-            ]);
-        }
-
-        $request->session()->regenerate();
-
-        return redirect()->route('faculty.dashboard');
     }
+
+    // Find associated user
+    $user = User::query()
+        ->whereKey($faculty->user_id)
+        ->where('role', 'Faculty')
+        ->first();
+
+    if (!$user) {
+        throw ValidationException::withMessages([
+            'email' => 'Faculty account is not properly linked to a user account.',
+        ]);
+    }
+
+    // Authenticate using the associated user's email
+    $authenticated = Auth::attempt([
+        'email' => $user->email,
+        'password' => $credentials['password'],
+        'role' => 'Faculty',
+    ], $request->boolean('remember'));
+
+    if (!$authenticated) {
+        throw ValidationException::withMessages([
+            'email' => 'Invalid faculty ID, email, or password.',
+        ]);
+    }
+
+    $request->session()->regenerate();
+
+    return redirect()->route('faculty.dashboard');
+}
 
     public function logout(Request $request)
     {

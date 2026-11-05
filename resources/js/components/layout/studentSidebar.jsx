@@ -18,25 +18,9 @@ const menuItems = [
 
     },
 
-    {
+    
 
-        label: 'My Section',
-
-        icon: 'layers',
-
-        path: '/student/sections',
-
-    },
-
-    {
-
-        label: 'Content',
-
-        icon: 'files',
-
-        path: '/student/content',
-
-    },
+    
 
     {
 

@@ -15,8 +15,6 @@ import {
   Users,
   UserRoundCheck,
   UserRoundX,
-  GraduationCap,
-  Layers,
 } from "lucide-react";
 
 import Sidebar from "../components/layout/sidebar";
@@ -32,12 +30,6 @@ const mapFaculty = (member) => ({
     specialization: member.specialization,
     contactNumber: member.contact_number || "",
     address: member.address || "",
-    assignedSections: (member.sections || []).map(
-        (section) => section.section_name
-    ),
-    assignedSectionIds: (member.sections || []).map(
-        (section) => section.id
-    ),
     status: member.status,
     dateAdded: member.created_at
         ? new Date(member.created_at).toLocaleDateString("en-US", {
@@ -47,17 +39,6 @@ const mapFaculty = (member) => ({
           })
         : "",
 });
-
-const sectionOptions = [
-  "BSAIS-11CA",
-  "BSAIS-21CA",
-  "BSAIS-31CA",
-  "BSAIS-41CA",
-  "BSEN-11CE",
-  "BSEN-21CE",
-  "BSEN-31CE",
-  "BSEN-41CE",
-];
 
 const initialSubjects = [
   {
@@ -206,7 +187,6 @@ export default function FacultyManagement() {
   const [activeMenu, setActiveMenu] = useState("Faculty");
 const {
     faculty: databaseFaculty = [],
-    availableSections = [],
     nextFacultyId = "",
 } = usePage().props;
 
@@ -220,7 +200,6 @@ useEffect(() => {
 }, [databaseFaculty]);
 
   const [searchValue, setSearchValue] = useState("");
-  const [sectionFilter, setSectionFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [modalType, setModalType] = useState(null);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
@@ -237,7 +216,6 @@ useEffect(() => {
     subjects: [],
     contactNumber: "",
     address: "",
-    assignedSections: [],
     status: "Active",
     dateAdded: "",
   });
@@ -251,14 +229,6 @@ useEffect(() => {
       .slice(0, 2)
       .toUpperCase();
 
-  const sections = useMemo(() => {
-    const allSections = faculty.flatMap(
-      (member) => member.assignedSections || []
-    );
-
-    return ["All", ...new Set([...allSections, ...availableSections.map((section) => section.section_name)])];
-  }, [faculty, availableSections]);
-
   const filteredFaculty = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
 
@@ -271,7 +241,6 @@ useEffect(() => {
         member.contactNumber,
         member.address,
         getFacultySubjects(member).join(" "),
-        (member.assignedSections || []).join(" "),
         member.status,
       ];
 
@@ -283,16 +252,12 @@ useEffect(() => {
           .toLowerCase()
           .includes(query);
 
-      const matchesSection =
-        sectionFilter === "All" ||
-        (member.assignedSections || []).includes(sectionFilter);
-
       const matchesStatus =
         statusFilter === "All" || member.status === statusFilter;
 
-      return matchesSearch && matchesSection && matchesStatus;
+      return matchesSearch && matchesStatus;
     });
-  }, [faculty, searchValue, sectionFilter, statusFilter]);
+  }, [faculty, searchValue, statusFilter]);
 
   const totalPages = Math.max(
     1,
@@ -317,10 +282,6 @@ useEffect(() => {
     (member) => member.status === "Inactive"
   ).length;
 
-  const assignedFaculty = faculty.filter(
-    (member) => (member.assignedSections || []).length > 0
-  ).length;
-
   const handleMenuChange = (menu) => {
     setActiveMenu(menu);
 
@@ -338,7 +299,6 @@ useEffect(() => {
       subjects: [],
       contactNumber: "",
       address: "",
-      assignedSections: [],
       status: "Active",
       dateAdded: new Date().toLocaleDateString("en-US", {
         month: "long",
@@ -357,7 +317,6 @@ useEffect(() => {
     setFormData({
       ...member,
       subjects: getFacultySubjects(member),
-      assignedSections: [...(member.assignedSections || [])],
     });
 
     setModalType("edit");
@@ -367,18 +326,6 @@ useEffect(() => {
     setSelectedFaculty(member);
     setModalType("view");
   };
-
-  const openAssignModal = (member) => {
-    setSelectedFaculty(member);
-
-    setFormData({
-        ...member,
-        assignedSections: [...(member.assignedSections || [])],
-        assignedSectionIds: [...(member.assignedSectionIds || [])],
-    });
-
-    setModalType("assign");
-};
 
   const closeModal = () => {
     setModalType(null);
@@ -410,51 +357,12 @@ useEffect(() => {
   };
 
   
-const toggleSection = (sectionId) => {
-    setFormData((current) => {
-        const selectedIds = current.assignedSectionIds || [];
-
-        return {
-            ...current,
-            assignedSectionIds: selectedIds.includes(sectionId)
-                ? selectedIds.filter((id) => id !== sectionId)
-                : [...selectedIds, sectionId],
-        };
-    });
-};
-
 
   
 
 
 const handleSubmit = (event) => {
     event.preventDefault();
-
-    // ASSIGN SECTIONS
-    if (modalType === "assign") {
-        if (!selectedFaculty?.databaseId) return;
-
-        router.put(
-            `/faculty/${selectedFaculty.databaseId}/sections`,
-            {
-                section_ids: formData.assignedSectionIds || [],
-            },
-            {
-                preserveScroll: true,
-
-                onSuccess: () => {
-                    closeModal();
-                },
-
-                onError: (errors) => {
-                    console.error("Assignment errors:", errors);
-                    alert(Object.values(errors).join("\n"));
-                },
-            }
-        );
-
-        return;
-    }
 
     // ADD / EDIT FACULTY
     const payload = {
@@ -569,13 +477,6 @@ const confirmDelete = () => {
       accent: "slate",
       note: "Currently inactive",
     },
-    {
-      label: "Assigned Faculty",
-      value: assignedFaculty,
-      icon: GraduationCap,
-      accent: "blue",
-      note: "With assigned sections",
-    },
   ];
 
   return (
@@ -623,7 +524,7 @@ const confirmDelete = () => {
               </h1>
 
               <p className="mt-1 text-sm text-white/55">
-                Manage faculty accounts, academic details, and section assignments.
+                Manage faculty accounts and academic details.
               </p>
             </div>
 
@@ -638,7 +539,7 @@ const confirmDelete = () => {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {summaryCards.map(({ label, value, icon: Icon, accent, note }) => {
               const tones = {
                 navy: "bg-[#294B70]/25 text-[#C4D9F0] border-[#7292B4]/20",
@@ -712,7 +613,7 @@ const confirmDelete = () => {
 
             {/* Search and Filters */}
             <div className="border-b border-white/10 px-5 py-4 sm:px-6">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_160px] md:items-center">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_160px] md:items-center">
                 <div className="flex h-10 min-w-0 items-center gap-2.5 rounded-xl border border-white/10 bg-[#071522]/70 px-3.5 text-white/45 transition focus-within:border-[#A9E5D2]/40 focus-within:ring-4 focus-within:ring-[#A9E5D2]/[0.07]">
                   <Search size={17} className="shrink-0" />
 
@@ -727,25 +628,6 @@ const confirmDelete = () => {
                     className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-white/35"
                   />
                 </div>
-
-                <select
-                  value={sectionFilter}
-                  onChange={(event) => {
-                    setSectionFilter(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className={fieldClass}
-                >
-                  {sections.map((section) => (
-                    <option
-                      value={section}
-                      key={section}
-                      className="bg-[#0A1B2A]"
-                    >
-                      {section === "All" ? "All Sections" : section}
-                    </option>
-                  ))}
-                </select>
 
                 <select
                   value={statusFilter}
@@ -776,7 +658,6 @@ const confirmDelete = () => {
                     {[
                       "Faculty ID",
                       "Name",
-                      "Assigned Sections",
                       "Status",
                       "Date Added",
                       "Actions",
@@ -828,25 +709,6 @@ const confirmDelete = () => {
                           </div>
                         </td>
 
-                        <td className="px-5 py-4 align-middle">
-                          {(member.assignedSections || []).length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {member.assignedSections.map((section) => (
-                                <span
-                                  key={section}
-                                  className="inline-flex rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[10px] font-semibold text-white/65"
-                                >
-                                  {section}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs italic text-white/35">
-                              Not Assigned
-                            </span>
-                          )}
-                        </td>
-
                         <td className="px-5 py-4">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold leading-none ${
@@ -888,15 +750,6 @@ const confirmDelete = () => {
                               className="flex h-9 w-9 items-center justify-center rounded-lg border border-sky-400/15 bg-sky-400/[0.06] text-sky-300 transition hover:bg-sky-400/15 active:scale-95"
                             >
                               <Pencil size={15} />
-                            </button>
-
-                            <button
-                              type="button"
-                              title="Assign Sections"
-                              onClick={() => openAssignModal(member)}
-                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#36534E]/40 bg-[#36534E]/15 text-[#A9E5D2] transition hover:bg-[#36534E]/30 active:scale-95"
-                            >
-                              <GraduationCap size={15} />
                             </button>
 
                             <button
@@ -1134,28 +987,6 @@ const confirmDelete = () => {
                   ) : (
                     <p className="mt-2 text-sm text-white/45">
                       No subjects assigned.
-                    </p>
-                  )}
-                </div>
-
-                {/* ASSIGNED SECTIONS */}
-                <div className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-3 sm:col-span-2">
-                  <span className={labelClass}>Assigned Sections</span>
-
-                  {(selectedFaculty.assignedSections || []).length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {selectedFaculty.assignedSections.map((section) => (
-                        <span
-                          key={section}
-                          className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/70"
-                        >
-                          {section}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-sm text-white/45">
-                      Not Assigned
                     </p>
                   )}
                 </div>
@@ -1458,133 +1289,6 @@ const confirmDelete = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </ModalShell>
-      )}
-
-      {/* ASSIGN FACULTY SECTIONS MODAL */}
-      {modalType === "assign" && selectedFaculty && (
-        <ModalShell onClose={closeModal}>
-          <div className="flex items-center justify-between border-b border-white/10 bg-[#102337] px-6 py-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-[#B5D5CB]">
-                <Layers size={23} />
-              </div>
-
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#A9E5D2]">
-                  Faculty Assignment
-                </p>
-
-                <h2 className="mt-1 text-xl font-bold text-white">
-                  Assign Faculty Sections
-                </h2>
-
-                <p className="mt-1 text-xs text-white/55">
-                  Select the sections assigned to this faculty member.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={closeModal}
-              aria-label="Close modal"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.05] text-slate-300 transition hover:bg-white/10 hover:text-white"
-            >
-              <X size={19} />
-            </button>
-          </div>
-
-          <div className="bg-[#0E1A2A] px-6 pt-5">
-            <div className="flex items-center gap-3 rounded-xl border border-[#75A99A]/15 bg-[#477F73]/10 px-4 py-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#A9E5D2]/20 bg-[#477F73]/20 text-sm font-bold text-[#A9E5D2]">
-                {getInitials(selectedFaculty.name)}
-              </div>
-
-              <div className="min-w-0">
-                <h3 className="truncate text-sm font-bold text-white">
-                  {selectedFaculty.name}
-                </h3>
-
-                <p className="mt-0.5 text-xs text-white/45">
-                  Faculty ID: {selectedFaculty.id}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#0E1A2A] px-6 py-5">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <label className={labelClass}>Available Sections</label>
-
-              <span className="text-xs text-[#A9E5D2]">
-                {(formData.assignedSectionIds || []).length} selected
-              </span>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-[#071522]/70 p-4 shadow-xl">
-              {availableSections.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {availableSections.map((section) => {
-                    const checked = (formData.assignedSectionIds || []).includes(section.id);
-                    const assignedElsewhere = section.faculty_id != null && Number(section.faculty_id) !== Number(selectedFaculty.databaseId);
-
-                    return (
-                      <label
-                        key={section.id}
-                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-sm font-medium transition ${
-                          checked
-                            ? "border-[#A9E5D2]/30 bg-[#477F73]/15 text-[#A9E5D2]"
-                            : "border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20 hover:bg-white/[0.05]"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={assignedElsewhere}
-                          onChange={() => toggleSection(section.id)}
-                          className="h-4 w-4 accent-[#477F73]"
-                        />
-
-                        <span className="break-words">{section.section_name}{assignedElsewhere ? " (Assigned to another faculty)" : ""}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="py-6 text-center text-sm text-white/40">
-                  No sections available.
-                </p>
-              )}
-
-              <div className="mt-4 border-t border-white/[0.07] pt-3">
-                <p className="text-xs text-white/40">
-                  Selected sections:{" "}
-                  <span className="font-semibold text-[#A9E5D2]">
-                    {(formData.assignedSectionIds || []).length}
-                  </span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 border-t border-white/10 bg-[#071522]/70 px-6 py-4 max-[480px]:flex-col">
-            <button
-              type="button"
-              onClick={closeModal}
-              className={secondaryButton}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className={primaryButton}
-            >
-              Save Assignments
-            </button>
           </div>
         </ModalShell>
       )}

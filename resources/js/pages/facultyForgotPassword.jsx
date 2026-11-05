@@ -1,7 +1,4 @@
-import { useState } from "react";
-
-import { Head, router } from "@inertiajs/react";
-import SystemLogo from "../components/common/systemLogo";
+import { Head, useForm } from "@inertiajs/react";
 
 import {
 
@@ -20,44 +17,18 @@ import {
 
 
 export default function FacultyForgotPassword() {
-
-    const [email, setEmail] = useState("");
-
-    const [error, setError] = useState("");
-
-    const [message, setMessage] = useState("");
-
-    const [submitted, setSubmitted] = useState(false);
-
-
-
-    const [sending, setSending] = useState(false);
+    const { data, setData, post, processing, errors, wasSuccessful } = useForm({
+        email: "",
+    });
+    const submitted = wasSuccessful;
+    const message =
+        "If the address is registered, check your inbox for password reset instructions.";
+    const error = errors.email;
+    const email = data.email;
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        setError("");
-        setMessage("");
-        const address = email.trim();
-        if (!address) {
-            setError("Email address is required.");
-            return;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
-            setError("Please enter a valid email address.");
-            return;
-        }
-        setSending(true);
-        router.post("/faculty/forgot-password/send-link", { email: address }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSubmitted(true);
-                setMessage("If the address is registered, check your inbox for password reset instructions.");
-            },
-            onError: (errors) => {
-                setError(errors.email || errors.message || "Unable to send recovery email. Please try again.");
-            },
-            onFinish: () => setSending(false),
-        });
+        post("/faculty/forgot-password/send-link", { preserveScroll: true });
     };
 
     const inputClass = `w-full rounded-xl border bg-[#071522]/25 py-4 pl-12 pr-4
@@ -362,8 +333,6 @@ export default function FacultyForgotPassword() {
 
                                             onSubmit={handleSubmit}
 
-                                            noValidate
-
                                             className="mt-8"
 
                                         >
@@ -410,21 +379,11 @@ export default function FacultyForgotPassword() {
 
                                                     placeholder="you@accentra.com"
 
-                                                    value={email}
-
-                                                    onChange={(event) => {
-
-                                                        setEmail(
-
-                                                            event.target.value
-
-                                                        );
-
-                                                        setError("");
-
-                                                        setMessage("");
-
-                                                    }}
+                                                    value={data.email}
+                                                    onChange={(event) =>
+                                                        setData("email", event.target.value)
+                                                    }
+                                                    required
 
                                                     className={inputClass}
 
@@ -471,13 +430,13 @@ export default function FacultyForgotPassword() {
                                             <button
 
                                                 type="submit"
-                                                disabled={sending}
+                                                disabled={processing}
 
                                                 className="group mt-6 flex w-full items-center justify-center gap-3 rounded-xl border border-[#B7E8D9]/40 bg-gradient-to-r from-[#477F73] to-[#528F80] px-5 py-4 font-semibold text-white shadow-[0_8px_25px_rgba(40,100,85,0.25)] transition duration-300 hover:-translate-y-0.5 hover:from-[#548F80] hover:to-[#65A795] hover:shadow-[0_12px_32px_rgba(40,100,85,0.35)] focus:outline-none focus:ring-2 focus:ring-[#A9E5D2] focus:ring-offset-2 focus:ring-offset-[#172B3C]"
 
                                             >
 
-                                                {sending ? "Sending..." : "Send Recovery Email"}
+                                                {processing ? "Sending..." : "Send Recovery Email"}
 
                                                 <ArrowRight
 

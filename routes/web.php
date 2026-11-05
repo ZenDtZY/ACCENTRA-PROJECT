@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Faculty\FacultySectionController;
 use App\Http\Controllers\Student\StudentTaskController;
 use App\Http\Controllers\Student\ChartOfAccountsController;
+use App\Http\Controllers\Student\StudentJournalEntryController;
 
 
 // Public landing page
@@ -88,7 +89,27 @@ Route::get('/student/tasks/{task}/attachment', [
         ->whereNumber('account')->name('student.accounting.chart-of-accounts.update');
     Route::delete('/student/accounting/chart-of-accounts/{account}', [ChartOfAccountsController::class, 'destroy'])
         ->whereNumber('account')->name('student.accounting.chart-of-accounts.destroy');
-    Route::inertia('/student/accounting/journal-entries', 'studentJournalEntries')->name('student.accounting.journal-entries');
+    
+Route::get('/student/accounting/journal-entries', [
+    StudentJournalEntryController::class,
+    'index',
+])->name('student.accounting.journal-entries');
+
+Route::post('/student/accounting/journal-entries', [
+    StudentJournalEntryController::class,
+    'store',
+])->name('student.accounting.journal-entries.store');
+
+Route::put('/student/accounting/journal-entries/{journalEntry}', [
+    StudentJournalEntryController::class,
+    'update',
+])->name('student.accounting.journal-entries.update');
+
+Route::delete('/student/accounting/journal-entries/{journalEntry}', [
+    StudentJournalEntryController::class,
+    'destroy',
+])->name('student.accounting.journal-entries.destroy');
+
     Route::inertia('/student/accounting/general-ledger', 'studentGeneralLedger')->name('student.accounting.general-ledger');
     Route::inertia('/student/accounting/trial-balance', 'studentTrialBalance')->name('student.accounting.trial-balance');
     Route::inertia('/student/accounting/income-sheet', 'studentIncomeSheet')->name('student.accounting.income-sheet');

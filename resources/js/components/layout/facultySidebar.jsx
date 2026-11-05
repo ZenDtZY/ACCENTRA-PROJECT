@@ -5,7 +5,7 @@ import SystemLogo from "../common/systemLogo";
 
 const menuItems = [
   { label: "Dashboard", icon: "layout-dashboard", path: "/faculty/dashboard" },
-  { label: "My Sections", icon: "layers", path: "/faculty/sections" },
+  
   { label: "Task Management", icon: "clipboard-list", path: "/faculty/tasks" },
   { label: "Submissions", icon: "folder-check", path: "/faculty/submissions" },
   { label: "Results", icon: "chart-no-axes-column", path: "/faculty/results" },

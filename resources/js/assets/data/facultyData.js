@@ -1,6 +1,6 @@
 export const faculty = [
   {
-    id: "FAC-001",
+    id: "FCT-001",
     name: "Maria Santos",
     email: "maria.santos@accentra.edu",
     specialization: "Accounting Information Systems",
@@ -11,7 +11,7 @@ export const faculty = [
     dateAdded: "October 2, 2026",
   },
   {
-    id: "FAC-002",
+    id: "FCT-002",
     name: "Juan Dela Cruz",
     email: "juan.delacruz@accentra.edu",
     specialization: "Financial Accounting",
@@ -22,7 +22,7 @@ export const faculty = [
     dateAdded: "October 2, 2026",
   },
   {
-    id: "FAC-003",
+    id: "FCT-003",
     name: "Ana Reyes",
     email: "ana.reyes@accentra.edu",
     specialization: "Management Accounting",
@@ -33,7 +33,7 @@ export const faculty = [
     dateAdded: "October 1, 2026",
   },
   {
-    id: "FAC-004",
+    id: "FCT-004",
     name: "Carlos Garcia",
     email: "carlos.garcia@accentra.edu",
     specialization: "Auditing",
@@ -44,7 +44,7 @@ export const faculty = [
     dateAdded: "September 29, 2026",
   },
   {
-    id: "FAC-005",
+    id: "FCT-005",
     name: "Sofia Mendoza",
     email: "sofia.mendoza@accentra.edu",
     specialization: "Taxation",
@@ -55,7 +55,7 @@ export const faculty = [
     dateAdded: "September 28, 2026",
   },
   {
-    id: "FAC-006",
+    id: "FCT-006",
     name: "Daniel Cruz",
     email: "daniel.cruz@accentra.edu",
     specialization: "Cost Accounting",
@@ -66,7 +66,7 @@ export const faculty = [
     dateAdded: "September 27, 2026",
   },
   {
-    id: "FAC-007",
+    id: "FCT-007",
     name: "Angela Ramos",
     email: "angela.ramos@accentra.edu",
     specialization: "Accounting Education",
@@ -77,7 +77,7 @@ export const faculty = [
     dateAdded: "September 26, 2026",
   },
   {
-    id: "FAC-008",
+    id: "FCT-008",
     name: "Mark Villanueva",
     email: "mark.villanueva@accentra.edu",
     specialization: "Business Accounting",

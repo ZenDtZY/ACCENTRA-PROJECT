@@ -55,7 +55,7 @@ class AccountIdGenerator
     private function configuration(string $accountType): array
     {
         return match ($accountType) {
-            'Faculty' => ['prefix' => 'FAC', 'table' => 'faculties', 'column' => 'faculty_number'],
+            'Faculty' => ['prefix' => 'FCT', 'table' => 'faculties', 'column' => 'faculty_number'],
             'Student' => ['prefix' => 'STD', 'table' => 'students', 'column' => 'student_number'],
             default => throw new RuntimeException("Unsupported account type [{$accountType}]."),
         };

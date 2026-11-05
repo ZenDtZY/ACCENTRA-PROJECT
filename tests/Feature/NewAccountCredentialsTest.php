@@ -24,7 +24,7 @@ it('shows the next faculty and student IDs in their creation forms', function ()
     $this->get(route('faculty'))
         ->assertInertia(fn ($page) => $page
             ->component('facultyManagement')
-            ->where('nextFacultyId', 'FAC-001'));
+            ->where('nextFacultyId', 'FCT-001'));
 
     $this->get(route('students'))
         ->assertInertia(fn ($page) => $page
@@ -57,13 +57,13 @@ it('creates a faculty account and emails a password setup link', function () {
         return $mail->hasTo($faculty->email)
             && $mail->accountType === 'Faculty'
             && $mail->setupUrl !== ''
-            && $mail->loginId === 'FAC-001'
+            && $mail->loginId === 'FCT-001'
             && $mail->accountDetails['Specialization'] === 'Accounting'
             && $mail->accountDetails['Assigned subjects'] === 'Fundamentals of Accounting, Auditing';
     });
 
     expect($user->role)->toBe('Faculty')
-        ->and($faculty->faculty_number)->toBe('FAC-001')
+        ->and($faculty->faculty_number)->toBe('FCT-001')
         ->and($faculty->subjects)->toBe(['Fundamentals of Accounting', 'Auditing'])
         ->and($faculty->user_id)->toBe($user->id)
         ->and($user->password)->not->toBeEmpty()
@@ -90,7 +90,7 @@ it('creates a faculty account and emails a password setup link', function () {
 it('updates assigned subjects for an existing faculty member', function () {
     $admin = signInAsAccountAdmin();
     $faculty = Faculty::create([
-        'faculty_number' => 'FAC-100',
+        'faculty_number' => 'FCT-100',
         'name' => 'Existing Faculty',
         'email' => 'existing.faculty@example.com',
         'specialization' => 'Accounting',

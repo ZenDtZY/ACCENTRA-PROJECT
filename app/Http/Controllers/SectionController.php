@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use App\Models\ActivityLog;
+use Illuminate\Support\Facades\DB;
 
 class SectionController extends Controller
 {
@@ -117,24 +118,37 @@ class SectionController extends Controller
     }
 
     // 5. Delete a section
-    public function destroy(Section $section)
-    {
-        $sectionName = $section->section_name;
+    
+public function destroy(Section $section)
+{
+    $sectionName = $section->section_name;
 
-$section->delete();
+    // Check whether this section has assigned tasks.
+    $hasTasks = DB::table('tasks')
+        ->where('section_id', $section->id)
+        ->exists();
 
-ActivityLog::create([
-    'actor' => 'Admin',
-    'action' => 'deleted a section',
-    'module' => 'Section Management',
-    'description' => $sectionName,
-    'icon' => 'trash-2',
-]);
-
+    if ($hasTasks) {
         return redirect()
-            ->route('sections')
-            ->with('success', 'Section deleted successfully!');
+            ->back()
+            ->with('error', 'Cannot delete this section because it still has assigned tasks. Please reassign or remove those tasks first.');
     }
+
+    $section->delete();
+
+    ActivityLog::create([
+        'actor' => 'Admin',
+        'action' => 'deleted a section',
+        'module' => 'Section Management',
+        'description' => $sectionName,
+        'icon' => 'trash-2',
+    ]);
+
+    return redirect()
+        ->route('sections')
+        ->with('success', 'Section deleted successfully.');
+}
+
 
     // 6. Activate / Deactivate section
     public function updateStatus(Request $request, Section $section)

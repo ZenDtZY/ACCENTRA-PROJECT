@@ -24,7 +24,7 @@ import {
 import FacultyLayout from "../components/layout/facultyLayout";
 
 const initialFacultyData = {
-    facultyId: "FAC-001",
+    facultyId: "FCT-001",
     name: "Cai Soriano",
     email: "cai.soriano@accentra.com",
     contactNo: "09123456789",

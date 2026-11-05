@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Head, useForm } from "@inertiajs/react";
+import { Head, useForm, usePage } from "@inertiajs/react";
 
 import SystemLogo from "../components/common/systemLogo";
 
@@ -71,7 +71,8 @@ function FieldIcon({ type }) {
 }
 
 export default function StudentLogin({ status }) {
-
+    const { flash = {} } = usePage().props;
+    const loginStatus = status || flash.success;
     const [showPassword, setShowPassword] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -280,7 +281,7 @@ export default function StudentLogin({ status }) {
 
                             </div>
 
-                            {status && (
+                            {loginStatus && (
 
                                 <div
 
@@ -290,7 +291,7 @@ export default function StudentLogin({ status }) {
 
                                 >
 
-                                    {status}
+                                    {loginStatus}
 
                                 </div>
 

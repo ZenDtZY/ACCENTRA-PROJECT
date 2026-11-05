@@ -53,8 +53,6 @@ export default function SectionManagement() {
     program: section.course,
     yearLevel: section.year_level,
     schoolYear: section.school_year,
-    facultyId: section.faculty_id ?? "",
-    facultyAssigned: section.faculty?.name || "Unassigned",
     students: Number(section.students_count ?? 0),
 
     studentMembers: (section.students ?? []).map((student) => ({
@@ -74,7 +72,6 @@ export default function SectionManagement() {
 
     const {
         sections: databaseSections = [],
-        availableFaculty = [],
         academicSettings = {
             academicYear: "2026-2027",
             defaultProgram: "Bachelor of Science in Accounting Information Systems",
@@ -146,13 +143,11 @@ const [formData, setFormData] = useState({
 
     schoolYear: academicSettings.academicYear,
 
-    facultyAssigned: "",
 
     students: 0,
 
     status: "Active",
 
-    facultyId: "",
 
 });
 
@@ -232,7 +227,6 @@ const [formData, setFormData] = useState({
 
           section.yearLevel,
 
-          section.facultyAssigned,
 
           section.students,
 
@@ -316,14 +310,12 @@ const openAddModal = () => {
         yearLevel: academicSettings.yearLevels[0] ?? "",
         schoolYear: academicSettings.academicYear,
 
-        facultyAssigned: "",
-
+    
         students: 0,
 
         status: "Active",
 
-        facultyId: "",
-
+    
     });
 
     setSelectedSection(null);
@@ -362,13 +354,11 @@ const openAddModal = () => {
 
         schoolYear: section.schoolYear || academicSettings.academicYear,
 
-        facultyAssigned: section.facultyAssigned,
 
         students: section.students,
 
         status: section.status,
 
-        facultyId: section.facultyId ?? "",
 
     });
 
@@ -419,12 +409,6 @@ const handleSubmit = (event) => {
         school_year: formData.schoolYear,
 
         status: formData.status,
-
-        faculty_id: formData.facultyId
-
-        ? Number(formData.facultyId)
-
-        : null,
 
     };
 
@@ -786,7 +770,7 @@ const confirmDelete = () => {
 
               <p className="mt-1 text-sm text-white/55">
 
-                Manage academic sections, faculty assignments, and student membership.
+                Manage academic sections and student membership.
 
               </p>
 
@@ -942,13 +926,13 @@ const confirmDelete = () => {
 
           <div className="w-full overflow-x-auto">
 
-            <table className="w-full min-w-[980px] border-collapse">
+            <table className="w-full min-w-[820px] border-collapse">
 
               <thead>
 
                   <tr className="border-b border-white/10 bg-white/[0.035]">
 
-                  {["Section Name", "Program", "Year Level", "Faculty Assigned", "No. of Students", "Status", "Actions"].map((heading) => (
+                  {["Section Name", "Program", "Year Level", "No. of Students", "Status", "Actions"].map((heading) => (
 
                     <th key={heading} className={`px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-white/35 ${heading === "Actions" ? "text-center" : "text-left"}`}>{heading}</th>
 
@@ -964,8 +948,7 @@ const confirmDelete = () => {
 
                   const isActive = section.status === "Active";
 
-                  const isUnassigned = !section.facultyAssigned || section.facultyAssigned === "Unassigned";
-
+  
                   return (
 
                     <tr key={section.id} className="border-b border-white/[0.055] transition-colors last:border-b-0 hover:bg-white/[0.025]">
@@ -992,23 +975,7 @@ const confirmDelete = () => {
 
                       <td className="px-5 py-4 text-sm text-slate-300">{section.yearLevel}</td>
 
-                      <td className="px-5 py-4">
-
-                        <div className="flex items-center gap-3">
-
-                          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold ${isUnassigned ? "border-white/10 bg-white/[0.04] text-white/35" : "border-[#A9E5D2]/20 bg-[#477F73]/20 text-[#B5D5CB]"}`}>{isUnassigned ? "—" : getInitials(section.facultyAssigned)}</div>
-
-                          <div className="min-w-0">
-
-                            <p className={`whitespace-nowrap text-sm font-semibold ${isUnassigned ? "text-white/35" : "text-slate-200"}`}>{isUnassigned ? "Unassigned" : section.facultyAssigned}</p>
-
-                            <p className="mt-1 text-[11px] text-white/35">{isUnassigned ? "No faculty assigned" : "Assigned Faculty"}</p>
-
-                          </div>
-
-                        </div>
-
-                      </td>
+                      
 
                       <td className="px-5 py-4 text-center text-sm font-semibold text-slate-200">{section.students}</td>
 
@@ -1036,7 +1003,7 @@ const confirmDelete = () => {
 
                 }) : (
 
-                  <tr><td colSpan={7} className="px-5 py-16 text-center">
+                  <tr><td colSpan={6} className="px-5 py-16 text-center">
 
                     <div className="mx-auto flex max-w-sm flex-col items-center">
 
@@ -1130,7 +1097,7 @@ const confirmDelete = () => {
 
               <section className="overflow-hidden rounded-xl border border-white/10 bg-[#071522]/70">
 
-                <div className="border-b border-white/[0.07] px-4 py-4"><h3 className="text-sm font-bold text-white">Section Details</h3><p className="mt-1 text-xs text-white/35">Academic and assignment information.</p></div>
+                <div className="border-b border-white/[0.07] px-4 py-4"><h3 className="text-sm font-bold text-white">Section Details</h3><p className="mt-1 text-xs text-white/35">Academic information.</p></div>
 
                 <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
 
@@ -1142,8 +1109,7 @@ const confirmDelete = () => {
 
                     ["Year Level", selectedSection.yearLevel],
 
-                    ["Faculty Assigned", selectedSection.facultyAssigned || "Unassigned"],
-
+                    
                     ["No. of Students", selectedSection.students],
 
                   ].map(([label, value]) => <div key={label} className={modalField}><span className={labelClass}>{label}</span><strong className="block break-words text-sm font-semibold text-slate-100">{value}</strong></div>)}
@@ -1258,7 +1224,6 @@ const confirmDelete = () => {
 
                   <div className={modalField}><label className={labelClass}>Year Level</label><select name="yearLevel" value={formData.yearLevel} onChange={handleFormChange} required className={inputClass}><option value="">Select Year Level</option>{yearLevels.map((year) => <option key={year} value={year}>{year}</option>)}</select></div>
 
-                  <div className={modalField}><label className={labelClass}>Faculty Assigned</label><select name="facultyId" value={formData.facultyId ?? ""} onChange={handleFormChange} className={inputClass}><option value="">Unassigned</option>{availableFaculty.map((member) => <option key={member.id} value={member.id}>{member.faculty_number} - {member.name}</option>)}</select></div>
 
                   <div className={modalField}><label className={labelClass}>No. of Students</label><div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white/70">{modalType === "edit" ? formData.students : 0}</div><p className="mt-1.5 text-[10px] text-white/35">The count updates automatically when students are assigned.</p></div>
 
