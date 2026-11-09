@@ -578,7 +578,7 @@ function TaskDetailsModal({ task, onClose, onStart, today }) {
 
                             <div className="min-w-0">
                                 <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#C8D8E8]">
-                                    Faculty Task Details
+                                     Task Details
                                 </span>
                                 <h2 className="mt-1 break-words text-xl font-bold text-white">
                                     {task.title}
