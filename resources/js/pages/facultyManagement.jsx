@@ -41,73 +41,6 @@ const mapFaculty = (member) => ({
         : "",
 });
 
-const initialSubjects = [
-  {
-    id: 1,
-    code: "ACC101",
-    name: "Fundamentals of Accounting",
-    description: "Introduction to basic accounting concepts and principles.",
-  },
-  {
-    id: 2,
-    code: "ACC102",
-    name: "Financial Accounting",
-    description: "Recording, classifying, and reporting financial transactions.",
-  },
-  {
-    id: 3,
-    code: "ACC103",
-    name: "Management Accounting",
-    description: "Accounting information for planning and decision-making.",
-  },
-  {
-    id: 4,
-    code: "ACC104",
-    name: "Cost Accounting",
-    description: "Cost measurement, analysis, and control.",
-  },
-  {
-    id: 5,
-    code: "ACC105",
-    name: "Auditing",
-    description: "Examination and evaluation of financial records.",
-  },
-  {
-    id: 6,
-    code: "ACC106",
-    name: "Taxation",
-    description: "Tax principles, regulations, and computations.",
-  },
-  {
-    id: 7,
-    code: "AIS101",
-    name: "Accounting Information Systems",
-    description: "Accounting processes and information systems.",
-  },
-  {
-    id: 8,
-    code: "AIS102",
-    name: "Accounting Information Systems Applications",
-    description: "Practical use of systems in accounting operations.",
-  },
-  {
-    id: 9,
-    code: "BUS101",
-    name: "Business Finance",
-    description: "Financial planning and business financial management.",
-  },
-  {
-    id: 10,
-    code: "BUS102",
-    name: "Business Law",
-    description: "Legal principles relevant to business operations.",
-  },
-];
-
-const activeSubjects = initialSubjects.filter(
-  (subject) => subject.status === "Active" || !subject.status
-);
-
 const glassCard =
   "overflow-hidden rounded-2xl border border-white/[0.13] bg-gradient-to-br from-white/[0.105] to-white/[0.025] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_18px_55px_rgba(0,0,0,0.18)] backdrop-blur-[22px]";
 
@@ -188,8 +121,19 @@ export default function FacultyManagement() {
   const [activeMenu, setActiveMenu] = useState("Faculty");
 const {
     faculty: databaseFaculty = [],
+    availableSubjects: databaseSubjects = [],
     nextFacultyId = "",
 } = usePage().props;
+
+// Subjects are loaded from the database by FacultyController.
+const activeSubjects = databaseSubjects
+    .filter((subject) => subject.status === "Active")
+    .map((subject) => ({
+        id: subject.id,
+        code: subject.subject_code ?? subject.code ?? "",
+        name: subject.subject_name ?? subject.name ?? "",
+        description: subject.description ?? "",
+    }));
 
 const [faculty, setFaculty] = useState(() =>
     databaseFaculty.map(mapFaculty)
@@ -965,7 +909,7 @@ const confirmDelete = () => {
                     <div className="mt-2 flex flex-wrap gap-2">
                       {getFacultySubjects(selectedFaculty).map(
                         (subjectName) => {
-                          const subject = initialSubjects.find(
+                          const subject = activeSubjects.find(
                             (item) => item.name === subjectName
                           );
 
@@ -1232,7 +1176,7 @@ const confirmDelete = () => {
                   </div>
 
                   <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-white/10 bg-[#0A1B2A] p-3">
-                    {activeSubjects.map((subject) => {
+                    {activeSubjects.length > 0 ? activeSubjects.map((subject) => {
                       const selectedSubjects = Array.isArray(formData.subjects)
                         ? formData.subjects
                         : [];
@@ -1266,7 +1210,11 @@ const confirmDelete = () => {
                           </span>
                         </label>
                       );
-                    })}
+                    }) : (
+                      <p className="px-3 py-6 text-center text-sm text-white/45">
+                        No active subjects found. Add or activate subjects in Subject Management.
+                      </p>
+                    )}
                   </div>
 
                   <p className="mt-3 text-xs text-white/40">

@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Task;
 use App\Models\Section;
+use App\Models\Subject;
 
 class FacultyController extends Controller
 {
@@ -33,6 +34,17 @@ public function index()
         'availableSections' => \App\Models\Section::orderBy('section_name')
             ->get(['id', 'section_name', 'faculty_id']),
         'nextFacultyId' => app(AccountIdGenerator::class)->preview('Faculty'),
+
+        'availableSubjects' => Subject::where('catalogue', 'faculty')
+    ->where('status', 'Active')
+    ->orderBy('subject_name')
+    ->get([
+        'id',
+        'subject_code',
+        'subject_name',
+        'description',
+        'status',
+    ]),
     ]);
 }
 

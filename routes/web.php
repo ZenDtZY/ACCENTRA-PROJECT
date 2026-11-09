@@ -17,6 +17,7 @@ use App\Http\Controllers\Faculty\FacultySectionController;
 use App\Http\Controllers\Student\StudentTaskController;
 use App\Http\Controllers\Student\ChartOfAccountsController;
 use App\Http\Controllers\Student\StudentJournalEntryController;
+use App\Http\Controllers\SubjectController;
 
 
 // Public landing page
@@ -170,6 +171,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::put('/sections/{section}', [SectionController::class, 'update'])->name('sections.update');
     Route::patch('/sections/{section}/status', [SectionController::class, 'updateStatus'])->name('sections.status');
     Route::delete('/sections/{section}', [SectionController::class, 'destroy'])->name('sections.destroy');
+
+    // Subject Management
+Route::get('/subjects', [SubjectController::class, 'index'])
+    ->name('subjects');
+
+Route::post('/subjects', [SubjectController::class, 'store'])
+    ->name('subjects.store');
+
+Route::put('/subjects/{subject}', [SubjectController::class, 'update'])
+    ->name('subjects.update');
+
+Route::delete('/subjects/{subject}', [SubjectController::class, 'destroy'])
+    ->name('subjects.destroy');
 });
 
 // Faculty portal
@@ -199,4 +213,7 @@ Route::middleware(['auth:student,web', 'active.student'])->group(function () {
 });
 
    
+
+
+
 
