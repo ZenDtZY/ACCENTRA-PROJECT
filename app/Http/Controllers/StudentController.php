@@ -35,6 +35,7 @@ use App\Models\ActivityLog;
 use App\Models\User;
 
 use App\Models\Faculty;
+use App\Models\Subject;
 
 
 
@@ -632,31 +633,20 @@ public function assignSubjects(Request $request, Student $student)
 }
 
 private function availableSubjectNames(): array
-
 {
-
-    return Faculty::query()
-
-        ->get(['subjects'])
-
-        ->flatMap(fn ($faculty) => $faculty->subjects ?? [])
-
-        ->filter(fn ($subject) =>
-
-            is_string($subject) && trim($subject) !== ''
-
-        )
-
+    // Load subjects from the shared catalogue, not from faculty assignments.
+    // This makes every active subject available to students immediately,
+    // even when no faculty member has been assigned to teach it yet.
+    return Subject::query()
+        ->where('status', 'Active')
+        ->whereIn('catalogue', ['faculty', 'student'])
+        ->orderBy('subject_name')
+        ->pluck('subject_name')
+        ->filter(fn ($subject) => is_string($subject) && trim($subject) !== '')
         ->map(fn ($subject) => trim($subject))
-
-        ->unique()
-
-        ->sort()
-
+        ->unique(fn ($subject) => mb_strtolower($subject))
         ->values()
-
         ->all();
-
 }
 
 
